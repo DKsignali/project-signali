@@ -251,7 +251,7 @@ export default async function handler(request, response) {
       try {
         const signalId = insertedSignal ? insertedSignal.id : "Няма ID";
         // ДОБАВЕНО: Изграждане на Magic Link за управление
-        const magicLink = `https://signali-plovdiv.vercel.app/?manage=${signalId}&token=${ownerToken}`;
+        const magicLink = `https://project-signali.vercel.app/?manage=${signalId}&token=${ownerToken}`;
  
         // 1. ИМЕЙЛ ДО ГРАЖДАНИНА (ПОТВЪРЖДЕНИЕ)
         await resend.emails.send({
