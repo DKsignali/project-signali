@@ -311,7 +311,32 @@
                 </div>
 
                 <div id="statusNotification" class="hidden mb-6 p-4 rounded-xl text-sm font-medium transition duration-300 border"></div>
+<!-- Комбиниран контейнер за успех и АПК документ (позициониран над формата) -->
+<div id="officialLetterContainer" class="hidden mb-6 p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-4 shadow-sm transition-all duration-500 scale-95 opacity-0">
+    
+    <!-- Горна част: Съобщение за успех с красива икона -->
+    <div class="flex items-center gap-3 pb-3 border-b border-emerald-200/50">
+        <div class="flex-shrink-0 bg-emerald-100 p-2 rounded-xl text-emerald-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <div>
+            <p class="text-sm text-emerald-900 font-medium">
+                Успех! Сигналът ви е заведен под <span id="successSignalId" class="font-bold underline decoration-2 decoration-emerald-500">ID №0</span>.
+            </p>
+            <p class="text-xs text-emerald-700/80 mt-0.5">Документът е изпратен към съответната институция по АПК.</p>
+        </div>
+    </div>
 
+    <!-- Долна част: Юридически оформеното писмо -->
+    <div class="space-y-2">
+        <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+            <span>⚖️</span> Юридически оформен документ по чл. 107-111 от АПК:
+        </h4>
+        <pre id="officialLetterText" class="w-full text-xs text-slate-800 bg-white/90 p-4 rounded-xl border border-slate-200/80 overflow-x-auto whitespace-pre-wrap font-mono shadow-inner max-h-80 leading-relaxed"></pre>
+    </div>
+</div>
                 <form id="signalForm" class="space-y-6">
                     <input type="hidden" id="latitude">
                     <input type="hidden" id="longitude">
@@ -417,13 +442,6 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
                         <span>Изпрати сигнал към AI Агента</span>
                     </button>
-                    
-                    <div id="officialLetterContainer" class="hidden mt-6 p-5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-3 shadow-sm transform transition duration-500 scale-95 opacity-0">
-                        <h4 class="text-sm font-bold text-emerald-900 flex items-center">
-                            <span class="mr-2">⚖️</span> Юридически оформен документ по чл. 107-111 от АПК:
-                        </h4>
-                        <pre id="officialLetterText" class="w-full text-xs text-slate-800 bg-white p-4 rounded-xl border border-slate-200 overflow-x-auto whitespace-pre-wrap font-mono shadow-inner max-h-80 leading-relaxed"></pre>
-                    </div>
                 </form>
             </div>
         </div>
@@ -1036,34 +1054,47 @@ async function closeSignalByOwner(id) {
 
                 const result = await response.json();
 
-                if (response.ok && result.success) {
-                    showNotification(`✔ <strong>Успех!</strong> Сигналът ви е заведен под <strong>ID №${result.data.id}</strong>.`, 'success');
-                
-                    // ДОБАВЕНО: Записваме токена в речника на Local Storage веднага при създаване на сигнала
-                    if (result.data && result.data.id && result.data.owner_token) {
-                        localStorage.setItem(`owner_token_signal_${result.data.id}`, result.data.owner_token);
-                    }
-                    const letterContainer = document.getElementById('officialLetterContainer');
-                    const letterText = document.getElementById('officialLetterText');
+// НОВИЯТ ИЗЧИСТЕН И КРАСИВ ВАРИАНТ:
+if (response.ok && result.success) {
+    // 1. Записваме токена на автора в Local Storage (критично важно за управлението на сигнала!)
+    if (result.data && result.data.id && result.data.owner_token) {
+        localStorage.setItem(`owner_token_signal_${result.data.id}`, result.data.owner_token);
+    }
 
-                    if (letterContainer && letterText && result.data.official_letter) {
-                        letterText.textContent = result.data.official_letter;
-                        letterContainer.classList.remove('hidden');
-                        setTimeout(() => { letterContainer.classList.remove('scale-95', 'opacity-0'); letterContainer.classList.add('scale-100', 'opacity-100'); }, 50);
-                    }
+    // 2. Попълваме ID-то в новото му място в зеления контейнер
+    const idSpan = document.getElementById('successSignalId');
+    if (idSpan) {
+        idSpan.innerHTML = `<strong>ID №${result.data.id}</strong>`;
+    }
 
-                    this.reset();
-                    clearUserMarker();
-                    
-                    // Нулиране на Drag & Drop визуалната зона при успешен ресет на формата
-                    if (typeof window.resetDragAndDropZone === 'function') {
-                        window.resetDragAndDropZone();
-                    }
-                    
-                    const previewContainer = document.getElementById('imagePreviewContainer');
-                    if (previewContainer) previewContainer.classList.add('hidden');
-                    
-                    loadPublicSignals();
+    // 3. Попълваме официалното писмо и показваме целия комбиниран блок над формата с плавна анимация
+    const letterContainer = document.getElementById('officialLetterContainer');
+    const letterText = document.getElementById('officialLetterText');
+    
+    if (letterContainer && letterText && result.data.official_letter) {
+        letterText.textContent = result.data.official_letter;
+        
+        // Премахваме скриващите класове и задействаме анимацията
+        letterContainer.classList.remove('hidden', 'scale-95', 'opacity-0');
+        letterContainer.classList.add('scale-100', 'opacity-100');
+        
+        // Скролираме плавно до новия зелен блок, за да го види потребителят веднага
+        letterContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // 4. Показваме красивото известие (toast)
+    showNotification(`Сигналът е изпратен успешно.`, 'success');
+
+    // 5. Изчистване на формата, маркера от картата и качения файл
+    this.reset();
+    clearUserMarker();
+    if (typeof window.resetDragAndDropZone === 'function') {
+        window.resetDragAndDropZone();
+    }
+    
+    // Презареждаме сигналите по картата, за да се появи новият сигнал
+    loadPublicSignals();
+}
                 } else {
                     showNotification(`❌ <strong>Грешка:</strong> ${result.error || 'Проблем при обработка.'}`, 'error');
                 }
