@@ -319,7 +319,12 @@ export default async function handler(request, response) {
               <h3 style="color: #0f172a; margin-top: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px;">ПРАВЕН ТЕКСТ НА ЖАЛБАТА:</h3>
               <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #0f172a; border: 1px solid #e2e8f0;">${structuredData.official_letter}</pre>
               
-              ${imageUrl ? `<p style="margin-top: 15px;">🖼️ <strong>Приложено фотодоказателство:</strong> <a href="${imageUrl}" target="_blank" style="color: #2563eb; font-weight: bold;">Виж снимката тук</a></p>` : ''}
+              ${imageUrl ? `
+  <div style="margin-top: 15px; margin-bottom: 15px;">
+    <p style="margin: 0 0 8px 0; font-weight: bold; color: #1e293b;">Прикачена снимка от мястото:</p>
+    <img src="${imageUrl}" alt="Снимка към сигнала" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 400px; display: block;" />
+  </div>
+` : '<p style="color: #64748b; font-style: italic;">Не е прикачена снимка.</p>'}
               
               <p style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 10px; border-radius: 6px; font-size: 11px; color: #78350f; margin-top: 25px;">
                 ℹ️ <strong>Техническа бележка за деловодителя:</strong> Настоящото писмо е изпратено от автоматизирания портал за граждански контрол. Моля, използвайте бутона <strong>"Отговори" (Reply)</strong> на Вашата пощенска кутия, за да влезете в директен контакт с подателя на неговия личен имейл.
