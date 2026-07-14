@@ -252,12 +252,29 @@ export default async function handler(request, response) {
         const signalId = insertedSignal ? insertedSignal.id : "Няма ID";
         // ДОБАВЕНО: Изграждане на Magic Link за управление
         const magicLink = `https://project-signali.vercel.app/?manage=${signalId}&token=${ownerToken}`;
+
+        // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND (АКТИВИРАНО)
+        let emailAttachments = [];
+        if (imageUrl && imageUrl.startsWith('data:')) {
+          const parts = imageUrl.split(';base64,');
+          if (parts.length === 2) {
+            const contentType = parts[0].split(':')[1]; // Взема "image/jpeg", "image/png" и т.н.
+            const base64Content = parts[1];              // Взема чистия base64 низ без заглавната част
+            const extension = contentType.split('/')[1] || 'jpg'; // Динамично разширение
+
+            emailAttachments.push({
+              filename: `photo_evidence_${signalId}.${extension}`,
+              content: base64Content
+            });
+          }
+        }
  
         // 1. ИМЕЙЛ ДО ГРАЖДАНИНА (ПОТВЪРЖДЕНИЕ)
         await resend.emails.send({
           from: 'Сигнали Пловдив <onboarding@resend.dev>', // Смени с официален мейл след покупка на домейн
           to: [citizenEmail],
           subject: `🚨 Сигнал №${signalId} е успешно регистриран - Сигнали Пловдив`,
+          attachments: emailAttachments, // Прикачваме снимката като реален файл
           html: `
             <div style="font-family: sans-serif; max-width: 600px; color: #334155; line-height: 1.6;">
               <h2 style="color: #1e1b4b; margin-bottom: 5px;">Здравейте, ${citizenName}!</h2>
@@ -274,6 +291,11 @@ export default async function handler(request, response) {
                 <h4 style="margin-top: 0; color: #4f46e5; margin-bottom: 5px;">Вашето описание:</h4>
                 <p style="font-style: italic; margin-bottom: 0; color: #475569;">"${rawDescription}"</p>
               </div>
+              ${imageUrl ? `
+                <div style="margin-top: 15px; margin-bottom: 15px; padding: 10px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;">
+                  <p style="margin: 0; font-size: 13px; color: #1e293b;">📎 <strong>Към имейла е прикачено изпратеното от Вас фотодоказателство.</strong></p>
+                </div>
+              ` : ''}
 
               <p>Платформата преформатира сигнала Ви в правно-юридически документ съобразно изискванията на <strong>чл. 107-111 от Административнопроцесуарния кодекс (АПК)</strong>.</p>
               
@@ -300,6 +322,7 @@ export default async function handler(request, response) {
           
           // КЛЮЧОВИЯТ МОМЕНТ: Ако общината натисне "Отговор/Reply", писмото отива при гражданина!
           reply_to: citizenEmail,
+          attachments: emailAttachments, // Прикачваме снимката като реален файл
           
           // ЗАГЛАВИЕ ПО ФОРМУЛАТА НА АПК ЗА ДЪРЖАВНАТА АДМИНИСТРАЦИЯ
           subject: `[СИГНАЛ по чл. 107 от АПК] Относно: ${categoryInfo} – ${locationInfo} (Подател: ${citizenName})`,
@@ -320,12 +343,11 @@ export default async function handler(request, response) {
               <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #0f172a; border: 1px solid #e2e8f0;">${structuredData.official_letter}</pre>
               
               ${imageUrl ? `
-  <div style="margin-top: 15px; margin-bottom: 15px;">
-    <p style="margin: 0 0 8px 0; font-weight: bold; color: #1e293b;">Прикачена снимка от мястото:</p>
-    <img src="${imageUrl}" alt="Снимка към сигнала" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 400px; display: block;" />
-  </div>
-` : '<p style="color: #64748b; font-style: italic;">Не е прикачена снимка.</p>'}
-              
+                <div style="margin-top: 15px; margin-bottom: 15px; padding: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+                  <p style="margin: 0; font-weight: bold; color: #166534;">📎 Към писмото е прикачено фотодоказателство от мястото на събитието.</p>
+                </div>
+              ` : '<p style="color: #64748b; font-style: italic;">Не е прикачена снимка.</p>'}
+             
               <p style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 10px; border-radius: 6px; font-size: 11px; color: #78350f; margin-top: 25px;">
                 ℹ️ <strong>Техническа бележка за деловодителя:</strong> Настоящото писмо е изпратено от автоматизирания портал за граждански контрол. Моля, използвайте бутона <strong>"Отговори" (Reply)</strong> на Вашата пощенска кутия, за да влезете в директен контакт с подателя на неговия личен имейл.
               </p>
