@@ -67,7 +67,7 @@ export default async function handler(request, response) {
             const quarter = geoData.address.suburb || geoData.address.neighbourhood || '';
             
             if (road) {
-              geoAddress = `ул./бул. ${road} ${houseNumber ? '№' + houseNumber : ''}`.trim();
+              geoAddress = `ул./бул. ${road}${houseNumber ? '№' + houseNumber : ''}`.trim();
               if (quarter) geoAddress += ` (кв. ${quarter})`;
             } else if (geoData.display_name) {
               geoAddress = geoData.display_name;
@@ -156,7 +156,7 @@ export default async function handler(request, response) {
     // =========================================================================
 
     const structuredData = JSON.parse(responseText);
-// =========================================================================
+    // =========================================================================
     // БЛОК: НАМИРАНЕ НА КООРДИНАТИ ЧРЕЗ ЧИСТИЯ АДРЕС, ИЗВЛЕЧЕН ОТ ИИ (ПОДСИГУРЕН)
     // =========================================================================
     if (!finalLat || !finalLng) {
@@ -255,16 +255,24 @@ export default async function handler(request, response) {
 
         // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND (АКТИВИРАНО)
         let emailAttachments = [];
-        if (imageUrl && imageUrl.startsWith('data:')) {
-          const parts = imageUrl.split(';base64,');
-          if (parts.length === 2) {
-            const contentType = parts[0].split(':')[1]; // Взема "image/jpeg", "image/png" и т.н.
-            const base64Content = parts[1];              // Взема чистия base64 низ без заглавната част
-            const extension = contentType.split('/')[1] || 'jpg'; // Динамично разширение
+        if (imageUrl) {
+          if (imageUrl.startsWith('data:')) {
+            const parts = imageUrl.split(';base64,');
+            if (parts.length === 2) {
+              const contentType = parts[0].split(':')[1]; // Взема "image/jpeg", "image/png" и т.н.
+              const base64Content = parts[1];              // Взема чистия base64 низ без заглавната част
+              const extension = contentType.split('/')[1] || 'jpg'; // Динамично разширение
 
+              emailAttachments.push({
+                filename: `photo_evidence_${signalId}.${extension}`,
+                content: base64Content
+              });
+            }
+          } else {
+            // Ако imageUrl е директен уеб адрес (например от Supabase Storage)
             emailAttachments.push({
-              filename: `photo_evidence_${signalId}.${extension}`,
-              content: base64Content
+              filename: `photo_evidence_${signalId}.jpg`,
+              path: imageUrl
             });
           }
         }
@@ -280,7 +288,7 @@ export default async function handler(request, response) {
               <h2 style="color: #1e1b4b; margin-bottom: 5px;">Здравейте, ${citizenName}!</h2>
               <p style="margin-top: 0;">Благодарим Ви за активната гражданска позиция.</p>
               <p>Вашият сигнал беше успешно заведен под <strong>№${signalId}</strong> в градската система и беше изпратен към съответната институция по служебен път.</p>
-                            <div style="text-align: center; margin: 25px 0;">
+              <div style="text-align: center; margin: 25px 0;">
                 <a href="${magicLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 6px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
                   ⚡ Управление и Затваряне на Сигнала
                 </a>
