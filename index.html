@@ -1037,7 +1037,7 @@ async function closeSignalByOwner(id) {
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    showNotification(`🎉 <strong>Успех!</strong> Сигналът ви е заведен под <strong>ID №${result.data.id}</strong>.`, 'success');
+                    showNotification(`✔ <strong>Успех!</strong> Сигналът ви е заведен под <strong>ID №${result.data.id}</strong>.`, 'success');
                 
                     // ДОБАВЕНО: Записваме токена в речника на Local Storage веднага при създаване на сигнала
                     if (result.data && result.data.id && result.data.owner_token) {
