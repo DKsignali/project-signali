@@ -188,7 +188,7 @@
                     Помогни на Пловдив да стане <span class="bg-gradient-to-r from-indigo-700 to-teal-600 bg-clip-text text-transparent">по-чист и безопасен</span>
                 </h2>
                 <p class="text-slate-600 text-sm sm:text-base max-w-2xl leading-relaxed mb-6 text-pretty">
-                    Подай сигнал за infrastructure-ни проблеми. Нашият изкуствен интелект автоматично ще го обработи, оформи по изискванията на <strong class="text-indigo-950 font-semibold">АПК</strong> и насочи към правилната общинска институция.
+                    Подай сигнал за инфраструктурни проблеми. Нашият изкуствен интелект автоматично ще го обработи, оформи по изискванията на <strong class="text-indigo-950 font-semibold">АПК</strong> и насочи към правилната общинска институция.
                 </p>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-slate-100 pt-6">
                     <div class="step-card group relative bg-gradient-to-b from-amber-50/80 to-white rounded-2xl p-3.5 border border-amber-100">
@@ -312,29 +312,6 @@
 
                 <div id="statusNotification" class="hidden mb-6 p-4 rounded-xl text-sm font-medium transition duration-300 border"></div>
 
-                <div id="officialLetterContainer" class="hidden mb-6 p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-4 shadow-sm transition-all duration-500 scale-95 opacity-0">
-                    <div class="flex items-center gap-3 pb-3 border-b border-emerald-200/50">
-                        <div class="flex-shrink-0 bg-emerald-100 p-2 rounded-xl text-emerald-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-sm text-emerald-900 font-medium">
-                                Успех! Сигналът ви е заведен под <span id="successSignalId" class="font-bold underline decoration-2 decoration-emerald-500">ID №0</span>.
-                            </p>
-                            <p class="text-xs text-emerald-700/80 mt-0.5">Документът е генериран успешно и е предаден към съответното ведомство.</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
-                            <span>⚖️</span> Юридически оформен документ по чл. 107-111 от АПК:
-                        </h4>
-                        <pre id="officialLetterText" class="w-full text-xs text-slate-800 bg-white/90 p-4 rounded-xl border border-slate-200/80 overflow-x-auto whitespace-pre-wrap font-mono shadow-inner max-h-80 leading-relaxed"></pre>
-                    </div>
-                </div>
-
                 <form id="signalForm" class="space-y-6">
                     <input type="hidden" id="latitude">
                     <input type="hidden" id="longitude">
@@ -378,88 +355,110 @@
                                 class="field field-teal w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm leading-relaxed"></textarea>
                         </div>
                         
-                        <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Снимка на проблема</label>
-                            
-                            <input type="hidden" id="imageUrl" name="imageUrl">
-                            
-                            <input type="file" id="fileInput" accept="image/*" class="hidden">
+<div class="space-y-2">
+    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Снимка на проблема</label>
+    
+    <input type="hidden" id="imageUrl" name="imageUrl">
+    
+    <input type="file" id="fileInput" accept="image/*" class="hidden">
 
-                            <div id="dropZone" class="group relative flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-white rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 shadow-sm">
-                                
-                                <div id="dropZonePrompt" class="space-y-3 transition duration-200">
-                                    <div class="mx-auto w-12 h-12 rounded-xl bg-slate-100 group-hover:bg-indigo-50 text-slate-400 group-hover:text-indigo-600 flex items-center justify-center transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <p class="text-sm font-bold text-slate-700">
-                                            <span class="text-indigo-600 group-hover:underline">Качи снимка</span> или я пусни тук
-                                        </p>
-                                        <p class="text-[11px] text-slate-400 font-medium">PNG, JPG, JPEG до 5MB</p>
-                                    </div>
-                                </div>
+    <div id="dropZone" class="group relative flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-white rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 shadow-sm">
+        
+        <div id="dropZonePrompt" class="space-y-3 transition duration-200">
+            <div class="mx-auto w-12 h-12 rounded-xl bg-slate-100 group-hover:bg-indigo-50 text-slate-400 group-hover:text-indigo-600 flex items-center justify-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <p class="text-sm font-bold text-slate-700">
+                    <span class="text-indigo-600 group-hover:underline">Качи снимка</span> или я пусни тук
+                </p>
+                <p class="text-[11px] text-slate-400 font-medium">PNG, JPG, JPEG до 5MB</p>
+            </div>
+        </div>
 
-                                <div id="dropZonePreview" class="hidden relative w-full rounded-xl overflow-hidden group/preview">
-                                    <img id="previewImage" src="" alt="Преглед на сигнала" class="w-full h-48 object-cover rounded-xl border border-slate-200">
-                                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/preview:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                                        <button type="button" id="btnRemoveImage" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Премахни снимката
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        <div id="dropZonePreview" class="hidden relative w-full rounded-xl overflow-hidden group/preview">
+            <img id="previewImage" src="" alt="Преглед на сигнала" class="w-full h-48 object-cover rounded-xl border border-slate-200">
+            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/preview:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                <button type="button" id="btnRemoveImage" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Премахни снимката
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
                     </div>
 
-                    <div class="pt-2">
-                        <div class="bento bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-start gap-3">
-                            <input type="checkbox" id="gdpr" required class="mt-1 w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
-                            <div class="text-xs leading-relaxed">
-                                <label for="gdpr" class="font-bold text-slate-700 cursor-pointer">
-                                    Съгласен съм платформата да изпрати сигнала от мое име и приемам 
-                                    <a href="/terms" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 font-extrabold underline decoration-indigo-400/40 transition duration-150 ml-0.5">
-                                        Общите условия <span class="text-red-500">*</span>
-                                    </a>
-                                </label>
-                                <p class="text-slate-500 mt-0.5">
-                                    Данните Ви се обработват и криптират съгласно GDPR и АПК единствено за целите на предаване на сигнала към Община Пловдив. Вижте 
-                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 font-bold underline decoration-indigo-400/40 transition duration-150">
-                                        Политиката за поверителност
-                                    </a>.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+<div class="flex items-start bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80">
+    <div class="flex items-center h-5">
+        <input id="gdpr" type="checkbox" required class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 accent-indigo-600 cursor-pointer">
+    </div>
+    <div class="ml-3 text-xs leading-relaxed">
+        <label for="gdpr" class="font-bold text-slate-700 cursor-pointer">
+            Съгласен съм платформата да изпрати сигнала от мое име и приемам 
+            <a href="/terms" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 font-extrabold underline decoration-indigo-400/40 transition duration-150 ml-0.5">
+                Общите условия <span class="text-red-500">*</span>
+            </a>
+        </label>
+        <p class="text-slate-500 mt-0.5">
+            Данните Ви се обработват и криптират съгласно GDPR и АПК единствено за целите на предаване на сигнала към Община Пловдив. Вижте 
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 font-bold underline decoration-indigo-400/40 transition duration-150">
+                Политиката за поверителност
+            </a>.
+        </p>
+    </div>
+</div>
 
                     <button type="submit" class="cta-primary w-full bg-gradient-to-r from-indigo-700 via-indigo-800 to-slate-900 hover:from-indigo-600 hover:via-indigo-700 hover:to-slate-900 text-white font-bold py-4 px-4 rounded-2xl shadow-xl shadow-indigo-900/20 hover:shadow-indigo-900/35 hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98] active:translate-y-0 flex justify-center items-center gap-2.5 text-base cursor-pointer tracking-wide">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
                         <span>Изпрати сигнал към AI Агента</span>
                     </button>
+                    
+                    <div id="officialLetterContainer" class="hidden mt-6 p-5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-3 shadow-sm transform transition duration-500 scale-95 opacity-0">
+                        <h4 class="text-sm font-bold text-emerald-900 flex items-center">
+                            <span class="mr-2">⚖️</span> Юридически оформен документ по чл. 107-111 от АПК:
+                        </h4>
+                        <pre id="officialLetterText" class="w-full text-xs text-slate-800 bg-white p-4 rounded-xl border border-slate-200 overflow-x-auto whitespace-pre-wrap font-mono shadow-inner max-h-80 leading-relaxed"></pre>
+                    </div>
                 </form>
             </div>
         </div>
     </main>
 
-    <div id="howItWorksModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 z-[100] transition duration-300">
-        <div class="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-100 transform scale-95 transition duration-300">
-            <div class="px-8 pt-7 pb-4 border-b border-slate-100 flex justify-between items-start">
-                <div>
-                    <span class="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full">
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Детайлен процес
-                    </span>
-                    <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-3 text-balance">Прозрачност и Правна сигурност</h3>
-                </div>
-                <button onclick="toggleHowItWorksModal(false)" class="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-xl transition cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                </button>
+    <footer class="bg-slate-950 text-slate-500 py-10 mt-16 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col items-center text-center text-xs gap-3">
+            <div class="flex items-center gap-2.5">
+                <span class="bg-gradient-to-br from-amber-300 to-amber-600 p-1.5 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg>
+                </span>
+                <span class="font-bold text-slate-300 tracking-tight">Сигнали <span class="text-amber-400">Пловдив</span></span>
             </div>
-            
-            <div class="px-7 py-6 space-y-4 text-sm text-slate-600 overflow-y-auto">
+            <p class="font-medium text-slate-400">© 2026 Граждански инкубатор – Сигнали Пловдив.</p>
+            <p class="text-slate-600">Експериментална AI платформа за по-чиста и уредена градска среда.</p>
+        </div>
+    </footer>
+
+    <div id="howItWorksModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-3xl max-w-xl w-full max-h-[88vh] overflow-y-auto shadow-[0_40px_90px_-30px_rgba(2,6,23,0.55)] ring-1 ring-slate-900/5 transform scale-95 transition-transform duration-300 relative">
+
+            <!-- Sticky header -->
+            <div class="sticky top-0 z-10 bg-white/90 backdrop-blur-md px-7 pt-7 pb-5 border-b border-slate-100 rounded-t-3xl">
+                <button onclick="toggleHowItWorksModal(false)" class="absolute top-6 right-6 text-slate-400 hover:text-slate-700 transition p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <span class="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Детайлен процес
+                </span>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-3 text-balance">Прозрачност и Правна сигурност</h3>
+            </div>
+
+            <!-- Content -->
+            <div class="px-7 py-6 space-y-4 text-sm text-slate-600">
+                <!-- 1: AI Agent -->
                 <div class="bento bg-gradient-to-br from-indigo-50/80 to-indigo-50/20 rounded-2xl p-5 border border-indigo-100/70">
                     <div class="flex items-center gap-3 mb-2.5">
                         <span class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center shadow-md shadow-indigo-600/25">
@@ -470,26 +469,35 @@
                     <p class="leading-relaxed">Институциите често игнорират сигнали на граждани, ако съдържат твърде емоционален език, липсва точен адрес или не са цитирани правни норми. Нашият ИИ автоматично изчиства текста, попълва липсващите административни детайли и генерира официален документ, напълно съобразен с изискванията на <b class="text-indigo-950 font-semibold">Административнопроцесуарния кодекс (АПК)</b>.</p>
                 </div>
 
-                <div class="bento bg-gradient-to-br from-indigo-50/80 to-indigo-50/20 rounded-2xl p-5 border border-indigo-100/70">
+                <!-- 2: Institutional routing -->
+                <div class="bento rounded-2xl p-5 border border-slate-200/80 bg-white">
                     <div class="flex items-center gap-3 mb-2.5">
-                        <span class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center shadow-md shadow-indigo-600/25">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span class="shrink-0 w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center ring-1 ring-slate-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>
                         </span>
-                        <h4 class="font-bold text-slate-900 text-base">Задължения на общината по АПК (чл. 107-111)</h4>
+                        <h4 class="font-bold text-slate-900 text-base">Автоматично институционално насочване</h4>
                     </div>
-                    <p class="leading-relaxed">Съгласно Глава Шеста от АПК, всеки гражданин има право да подава сигнали за злоупотреби с власт, корупция, лошо управление или увреждане на обществената среда. Общинската администрация е <b class="text-slate-950 font-semibold">законова задължена</b> да заведе сигнала, да извърши проверка и да върне официален писмен отговор в срок най-късно до два месеца.</p>
+                    <p class="leading-relaxed mb-3">Вместо вие да проучвате дали за даден проблем отговаря Районното кметство, ОП „Чистота“, ОП „Градини и паркове“ или КАТ, системата сама разпознава юрисдикцията на база категорията и локацията, след което изпраща сигнала по официален електронен път.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">Районно кметство</span>
+                        <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">ОП „Чистота“</span>
+                        <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">ОП „Градини и паркове“</span>
+                        <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">КАТ</span>
+                    </div>
                 </div>
 
-                <div class="bento bg-gradient-to-br from-indigo-50/80 to-indigo-50/20 rounded-2xl p-5 border border-indigo-100/70">
+                <!-- 3: Token security -->
+                <div class="bento rounded-2xl p-5 border border-slate-200/80 bg-white">
                     <div class="flex items-center gap-3 mb-2.5">
-                        <span class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center shadow-md shadow-indigo-600/25">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zM9 7a3 3 0 0 1 6 0v3H9V7zm3 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+                        <span class="shrink-0 w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center ring-1 ring-amber-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
                         </span>
-                        <h4 class="font-bold text-slate-900 text-base">Пълна сигурност чрез Token</h4>
+                        <h4 class="font-bold text-slate-900 text-base">Пълна анонимност и сигурност чрез Token</h4>
                     </div>
-                    <p class="leading-relaxed">Вие <b class="text-slate-900 font-semibold">нямате нужда от профил или парола</b>. При създаване на сигнал вашият браузър получава дигитален "Token" (ключ). Същият ключ се изпраща и на имейла ви. Това ви дава ексклузивното право да затворите сигнала веднага след като проблемът бъде решен, без никой друг да може да го затвори недобросъвестно.</p>
+                    <p class="leading-relaxed">Вие <b class="text-slate-900 font-semibold">нямате нужда от профил или парола</b>. При създаване на сигнал вашият браузър получава дигитален "Token" (ключ). Същият ключ се изпраща и на имейла ви. Това ви дава ексклузивното право да затворите сигнала веднага след като проблемът бъде решен, без никой друг да може да затвори сигнала недобросъвестно.</p>
                 </div>
 
+                <!-- 4: 48h civic feature -->
                 <div class="bento relative overflow-hidden rounded-2xl p-5 border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50/50">
                     <div class="flex items-center gap-3 mb-2.5">
                         <span class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/25">
@@ -497,134 +505,98 @@
                         </span>
                         <h4 class="font-bold text-emerald-950 text-base">Защо решените сигнали изчезват след 48 часа?</h4>
                     </div>
-                    <p class="leading-relaxed text-emerald-900/90">Когато вие (като автор) или 3-ма независими граждани потвърдят, че ремонтът е извършен, сигналът светва в <b class="text-emerald-700 font-bold">зелено</b>. Той остава видим на картата точно 48 часа, за да послужи като доказателство за успешния граждански контрол, след което автоматично се скрива. Така поддържаме картата на Пловдив винаги актуална.</p>
+                    <p class="leading-relaxed text-emerald-900/90">Когато вие (като автор) или 3-ма независими граждани потвърдят, че ремонтът е извършен, сигналът светва в <b class="text-emerald-700 font-bold">зелено</b>. Той остава видим на картата точно 48 часа, за да послужи като доказателство за успешния граждански контрол, след което автоматично се скрива. Така поддържаме картата на Пловдив актуална.</p>
                 </div>
             </div>
-            
-            <div class="px-8 py-5 bg-slate-50 border-t border-slate-100 flex justify-end">
-                <button onclick="toggleHowItWorksModal(false)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wide shadow-md shadow-indigo-600/20 transition cursor-pointer active:scale-98">
-                    Разбрах
+
+            <!-- Sticky footer -->
+            <div class="sticky bottom-0 bg-white/90 backdrop-blur-md px-7 py-5 border-t border-slate-100 flex justify-center rounded-b-3xl">
+                <button onclick="toggleHowItWorksModal(false)" class="cta-primary bg-gradient-to-r from-indigo-700 via-indigo-800 to-slate-900 hover:from-indigo-600 hover:via-indigo-700 hover:to-slate-900 text-white font-bold py-3 px-8 rounded-xl text-sm tracking-wide transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-900/30 active:scale-[0.97] active:translate-y-0 cursor-pointer shadow-md">
+                    Разбрах, благодаря!
                 </button>
             </div>
         </div>
     </div>
-
-    <div id="notificationContainer" class="fixed bottom-5 right-5 z-[200] space-y-3 max-w-sm w-full pointer-events-none"></div>
-
-    <script>
-        function showNotification(message, type = 'info') {
-            const container = document.getElementById('notificationContainer');
-            if (!container) return;
-
-            const toast = document.createElement('div');
-            toast.className = `p-4 rounded-xl text-xs font-semibold shadow-xl border backdrop-blur-md transform translate-y-4 opacity-0 transition duration-300 pointer-events-auto flex items-center gap-2.5`;
-            
-            if (type === 'success') {
-                toast.className += ' bg-emerald-50/95 border-emerald-200 text-emerald-900';
-            } else if (type === 'error') {
-                toast.className += ' bg-rose-50/95 border-rose-200 text-rose-900';
-            } else {
-                toast.className += ' bg-slate-900/95 border-slate-800 text-white';
-            }
-
-            toast.innerHTML = message;
-            container.appendChild(toast);
-
-            // Анимация при показване
-            setTimeout(() => {
-                toast.classList.remove('translate-y-4', 'opacity-0');
-            }, 10);
-
-            // Автоматично премахване след 4 секунди
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
-        }
-
+<script>
+        // NATIVE JAVASCRIPT ФУНКЦИИ ЗА УПРАВЛЕНИЕ НА МОДАЛА
         function toggleHowItWorksModal(show) {
             const modal = document.getElementById('howItWorksModal');
-            if (!modal) return;
-            const inner = modal.querySelector('div');
-
             if (show) {
                 modal.classList.remove('hidden');
-                setTimeout(() => {
-                    inner.classList.remove('scale-95');
-                }, 10);
+                modal.classList.add('flex');
+                setTimeout(() => { modal.classList.remove('opacity-0'); }, 10);
             } else {
-                inner.classList.add('scale-95');
+                modal.classList.add('opacity-0');
                 setTimeout(() => {
+                    modal.classList.remove('flex');
                     modal.classList.add('hidden');
-                }, 200);
+                }, 300); // съвпада с duration-300
             }
         }
 
-        // =========================================================================
-        // ИНИЦИАЛИЗАЦИЯ НА ГЕОГРАФСКА КАРТА (LEAFLET CENTERED ON PLOVDIV)
-        // =========================================================================
-        const map = L.map('map', {
-            center: [42.1354, 24.7453],
-            zoom: 13,
-            minZoom: 11,
-            maxZoom: 18,
-            fullscreenControl: true
-        });
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        }).addTo(map);
-
-        const markerClusterGroup = L.markerClusterGroup({
-            showCoverageOnHover: false,
-            maxClusterRadius: 45,
-            iconCreateFunction: function(cluster) {
-                const childCount = cluster.getChildCount();
-                return L.divIcon({
-                    html: `
-                        <div style="
-                            position: relative;
-                            width: 40px;
-                            height: 40px;
-                            background-color: rgba(239, 68, 68, 0.2);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            border-radius: 50%;
-                        ">
-                            <div style="
-                                width: 28px;
-                                height: 28px;
-                                background-color: #ef4444;
-                                border-radius: 50%;
-                                border: 2px solid white;
-                                box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                color: white;
-                                font-family: sans-serif;
-                                font-weight: bold;
-                                font-size: 12px;
-                            ">
-                                ${childCount}
-                            </div>
-                        </div>
-                    `,
-                    className: 'custom-red-cluster',
-                    iconSize: L.point(40, 40)
-                });
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('howItWorksModal');
+            if (event.target == modal) {
+                toggleHowItWorksModal(false);
             }
         });
-        map.addLayer(markerClusterGroup);
+
+// Карта и Leaflet Логика
+const map = L.map('map', { 
+    scrollWheelZoom: true,
+    fullscreenControl: true
+}).setView([42.14492, 24.75032], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// ОБНОВЕНА ЛОГИКА: Персонализирана функция за създаване на изцяло ЧЕРВЕНИ клъстери
+const markerClusterGroup = L.markerClusterGroup({
+    iconCreateFunction: function(cluster) {
+        const childCount = cluster.getChildCount();
+        
+        return L.divIcon({ 
+            html: `
+                <div style="
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    width: 40px; 
+                    height: 40px; 
+                    background-color: rgba(239, 68, 68, 0.4); 
+                    border-radius: 50%;
+                ">
+                    <div style="
+                        width: 28px; 
+                        height: 28px; 
+                        background-color: #ef4444; 
+                        border-radius: 50%; 
+                        border: 2px solid white; 
+                        box-shadow: 0 0 8px rgba(239, 68, 68, 0.8); 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        color: white; 
+                        font-family: sans-serif; 
+                        font-weight: bold; 
+                        font-size: 12px;
+                    ">
+                        ${childCount}
+                    </div>
+                </div>
+            `, 
+            className: 'custom-red-cluster', 
+            iconSize: L.point(40, 40) 
+        });
+    }
+});
+map.addLayer(markerClusterGroup);
 
         let userMarker = null;
 
         function clearUserMarker() {
-            if (userMarker) {
-                map.removeLayer(userMarker);
-                userMarker = null;
-            }
+            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
             document.getElementById('latitude').value = '';
             document.getElementById('longitude').value = '';
             document.getElementById('locationBadge').classList.add('hidden');
@@ -666,17 +638,20 @@
             const previewImage = document.getElementById('previewImage');
             const btnRemoveImage = document.getElementById('btnRemoveImage');
 
-            if (!dropZone || !fileInput) return;
+            if (!dropZone) return; // Защита в случай, че DOM структурата още липсва
 
-            // 1. Клик върху зоната отваря файловия селектор
-            dropZone.addEventListener('click', () => fileInput.click());
+            // 1. Клик върху зоната отваря системния прозорец за избор на файл
+            dropZone.addEventListener('click', (e) => {
+                if (e.target.closest('#btnRemoveImage')) return;
+                fileInput.click();
+            });
 
             // 2. Визуални ефекти при влачене на файл над зоната
             ['dragenter', 'dragover'].forEach(eventName => {
                 dropZone.addEventListener(eventName, (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/40');
+                    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/30');
                 }, false);
             });
 
@@ -684,47 +659,43 @@
                 dropZone.addEventListener(eventName, (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/30');
                 }, false);
             });
 
-            // 3. Улавяне на пуснатия файл чрез влачене (Drop)
+            // 3. Улавяне на пуснатия файл чрез Drag & Drop
             dropZone.addEventListener('drop', (e) => {
                 const dt = e.dataTransfer;
                 const files = dt.files;
-                if (files && files.length > 0) {
-                    processUploadedFile(files[0]);
+                if (files.length) {
+                    handleUploadedFile(files[0]);
                 }
             });
 
-            // 4. Улавяне на файл през стандартния селектор (Click)
-            fileInput.addEventListener('change', function() {
-                if (this.files && this.files.length > 0) {
-                    processUploadedFile(this.files[0]);
+            // 4. Улавяне на избран файл през бутона за разглеждане
+            fileInput.addEventListener('change', (e) => {
+                if (fileInput.files.length) {
+                    handleUploadedFile(fileInput.files[0]);
                 }
             });
 
-            // 5. Функция за обработка, валидация и компресия на файла
-            function processUploadedFile(file) {
+            // 5. Функция за обработка, конвертиране в Base64 и компресия
+            function handleUploadedFile(file) {
                 if (!file.type.startsWith('image/')) {
-                    showNotification('❌ Моля, качете валиден графичен файл (снимка)!', 'error');
-                    return;
-                }
-                if (file.size > 5 * 1024 * 1024) {
-                    showNotification('❌ Файлът надвишава лимита от 5MB!', 'error');
+                    alert('Моля, изберете валиден графичен файл (снимка)!');
                     return;
                 }
 
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onloadend = function() {
-                    const base64Raw = reader.result;
+                    const originalBase64 = reader.result;
                     
-                    // Локално компресиране на устройството до макс 1200px ширина с 70% качество
-                    compressImageFile(base64Raw, 1200, 0.7, (compressedBase64) => {
+                    // Локално компресиране на снимката в браузъра с цел оптимизация на паметта в Supabase
+                    compressImageFile(originalBase64, 1000, 0.7, (compressedBase64) => {
                         imageUrlInput.value = compressedBase64;
                         previewImage.src = compressedBase64;
-
+                        
                         // Смяна на интерфейсните състояния
                         dropZonePrompt.classList.add('hidden');
                         dropZonePreview.classList.remove('hidden');
@@ -753,7 +724,7 @@
 
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-
+                    
                     const compressed = canvas.toDataURL('image/jpeg', quality);
                     callback(compressed);
                 };
@@ -764,6 +735,7 @@
                 imageUrlInput.value = '';
                 fileInput.value = '';
                 previewImage.src = '';
+                
                 dropZonePreview.classList.add('hidden');
                 dropZonePrompt.classList.remove('hidden');
                 dropZone.classList.remove('p-2');
@@ -785,7 +757,6 @@
             const container = document.getElementById('imagePreviewContainer');
             const img = document.getElementById('imagePreview');
             if (!container || !img) return;
-
             if(url.startsWith('http') || /\.(jpeg|jpg|gif|png|webp)/i.test(url) || url.startsWith('data:image')) {
                 img.src = url;
                 container.classList.remove('hidden');
@@ -794,217 +765,255 @@
             }
         });
 
-        // =========================================================================
-        // ЛОГИКА ЗА ЗАТВАРЯНЕ НА СИГНАЛ ОТ НЕГОВИЯ СОБСТВЕНИК (АВТОР) С TOKEN
-        // =========================================================================
-        async function closeSignalByOwner(id) {
-            const token = localStorage.getItem(`owner_token_signal_${id}`);
-            if (!token) {
-                showNotification('❌ Липсва дигитален Token за автентификация. Само авторът може да затвори сигнала.', 'error');
-                return;
+        function showNotification(message, type = 'success') {
+            const notif = document.getElementById('statusNotification');
+            notif.className = "mb-6 p-4 rounded-xl text-sm font-medium transition duration-300 border";
+            if (type === 'success') {
+                notif.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200/60');
+            } else {
+                notif.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200/60');
             }
+            notif.innerHTML = message;
+            notif.classList.remove('hidden');
+            notif.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
 
-            if (!confirm(`Сигурни ли сте, че искате да маркирате Сигнал №${id} като окончателно разрешен?`)) {
+        async function voteSignal(id, voteType) {
+            if (localStorage.getItem(`voted_signal_${id}`)) {
+                alert('Вие вече сте гласували за този сигнал!');
                 return;
             }
 
             try {
-                const response = await fetch('/api/close-signal', {
+                const response = await fetch('/api/vote-signals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, token: token })
+                    body: JSON.stringify({ id: id, voteType: voteType })
                 });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    showNotification(`🎉 Сигнал №${id} беше затворен успешно от Вас като негов автор!`, 'success');
-                    
-                    // 1. Корекция: Извикваме правилната и дефинирана функция в твоя проект, за да светне пинът в зелено веднага
-                    if (typeof loadPublicSignals === 'function') {
-                        await loadPublicSignals();
-                    }
-
-                    // 2. Затваряме попъпа на картата, ако е отворен
-                    if (window.map) {
-                        map.closePopup();
-                    }
-
-                    // 3. Директно обновяваме визуалните елементи в кутията за проследяване (ако съществуват)
-                    const closeBtn = document.getElementById('owner-close-btn');
-                    if (closeBtn) {
-                        closeBtn.style.display = 'none'; // Скриваме лилавия бутон веднага
-                    }
-                    
-                    // Намираме оранжевия статус таг в кутията и го правим зелен
-                    const statusSpan = document.querySelector('#trackResult .bg-amber-100');
-                    if (statusSpan) {
-                        statusSpan.className = "bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold text-[11px]";
-                        statusSpan.innerText = "Решен";
-                    }
-
-                    // 4. Обновяваме и справката в кутията за проследяване, за да се презареди цялото съдържание
-                    const searchInput = document.getElementById('searchSignalId');
-                    if (searchInput && searchInput.value == id && typeof trackSignal === 'function') {
-                        trackSignal();
-                    }
+                    localStorage.setItem(`voted_signal_${id}`, 'true');
+                    showNotification(`🗳️ ${result.message}`, 'success');
+                    await loadPublicSignals();
+                    map.closePopup();
                 } else {
-                    showNotification(`❌ Неуспешно затваряне: ${result.error || 'Невалиден токен.'}`, 'error');
+                    showNotification(`❌ Грешка при гласуване: ${result.error}`, 'error');
                 }
             } catch (err) {
-                console.error(err);
-                showNotification('❌ Мрежов срив при опит за прекратяване на сигнала.', 'error');
+                showNotification('❌ Срив в мрежата при изпращане на вота.', 'error');
             }
         }
+
+        // ДОБАВЕНО: Функция за директно и сигурно затваряне на сигнал от автора му (UX Подобрение №3)
+async function closeSignalByOwner(id) {
+    const token = localStorage.getItem(`owner_token_signal_${id}`);
+    if (!token) {
+        alert('Нямате административни права (Token) за затваряне на този сигнал.');
+        return;
+    }
+
+    if (!confirm(`Сигурни ли сте, че искате да маркирате Сигнал №${id} като окончателно разрешен?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/close-signal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, token: token })
+        });
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            showNotification(`🎉 Сигнал №${id} беше затворен успешно от Вас като негов автор!`, 'success');
+            
+            // 1. Корекция: Извикваме правилната и дефинирана функция в твоя проект, за да светне пинът в зелено веднага
+            if (typeof loadPublicSignals === 'function') {
+                await loadPublicSignals(); 
+            }
+            
+            // 2. Затваряме попъпа на картата, ако е отворен
+            if (window.map) {
+                map.closePopup();
+            }
+            
+            // 3. Директно обновяваме визуалните елементи в кутията за проследяване (ако съществуват)
+            const closeBtn = document.getElementById('owner-close-btn');
+            if (closeBtn) {
+                closeBtn.style.display = 'none'; // Скриваме лилавия бутон веднага
+            }
+
+            // Намираме оранжевия статус таг в кутията и го правим зелен
+            const statusSpan = document.querySelector('#trackResult .bg-amber-100');
+            if (statusSpan) {
+                statusSpan.className = "bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold text-[11px]";
+                statusSpan.innerText = "Решен";
+            }
+            
+            // 4. Обновяваме и справката в кутията за проследяване, за да се презареди цялото съдържание
+            const searchInput = document.getElementById('searchSignalId');
+            if (searchInput && searchInput.value == id && typeof trackSignal === 'function') {
+                trackSignal();
+            }
+        } else {
+            showNotification(`❌ Неуспешно затваряне: ${result.error || 'Невалиден токен.'}`, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showNotification('❌ Мрежов срив при опит за прекратяване на сигнала.', 'error');
+    }
+}
 
         async function loadPublicSignals() {
             try {
                 markerClusterGroup.clearLayers();
-                const response = await fetch('/api/get-signals');
-                const result = await response.json();
+
+                const res = await fetch('/api/get-signals');
+                const result = await res.json();
                 
-                if (response.ok && result.success) {
+                if (result.success && result.data) {
+                    const activeIcon = L.divIcon({
+                        className: 'pulse-marker', html: '<div class="pulse-dot"></div>',
+                        iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10]
+                    });
+
+                    const resolvedIcon = L.divIcon({
+                        className: 'resolved-marker', html: '<div class="resolved-dot"></div>',
+                        iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10]
+                    });
+
                     result.data.forEach(signal => {
-                        if (!signal.latitude || !signal.longitude) return;
+                        if (signal.latitude && signal.longitude) {
+                            const isResolved = signal.status === 'Разрешен от граждани' || signal.status === 'Решен';
+                            
+                            if (isResolved) {
+                                const lastTimeChanged = signal.updated_at || signal.created_at;
+                                if (lastTimeChanged) {
+                                    const resolvedTime = new Date(lastTimeChanged).getTime();
+                                    const currentTime = Date.now();
+                                    const fortyEightHoursInMs = 48 * 60 * 60 * 1000;
 
-                        const isResolved = signal.status === 'resolved' || signal.status === 'Решен';
-                        
-                        let markerIcon;
-                        if (isResolved) {
-                            markerIcon = L.divIcon({
-                                className: 'custom-resolved-icon',
-                                html: '<div class="resolved-marker"><div class="resolved-dot"></div></div>',
-                                iconSize: [20, 20],
-                                iconAnchor: [10, 10]
-                            });
-                        } else {
-                            markerIcon = L.divIcon({
-                                className: 'custom-pulse-icon',
-                                html: '<div class="pulse-marker"><div class="pulse-dot"></div></div>',
-                                iconSize: [20, 20],
-                                iconAnchor: [10, 10]
-                            });
-                        }
+                                    if (currentTime - resolvedTime > fortyEightHoursInMs) {
+                                        return;
+                                    }
+                                }
+                            }
 
-                        const marker = L.marker([signal.latitude, signal.longitude], { icon: markerIcon });
-                        
-                        const hasVoted = localStorage.getItem(`voted_signal_${signal.id}`);
-                        
-                        // ДОБАВЕНО: Проверка дали браузърът притежава собственически токен за този сигнал
-                        const isOwner = !!localStorage.getItem(`owner_token_signal_${signal.id}`);
+                            const markerIcon = isResolved ? resolvedIcon : activeIcon;
+                            const marker = L.marker([signal.latitude, signal.longitude], { icon: markerIcon });
+                            const hasVoted = localStorage.getItem(`voted_signal_${signal.id}`);
+                            
+                            // ДОБАВЕНО: Проверка дали браузърът притежава собственически токен за този сигнал
+                            const isOwner = !!localStorage.getItem(`owner_token_signal_${signal.id}`);
 
-                        let votingSection = "";
-                        if (isResolved) {
-                            votingSection = `<div class="flex items-center justify-center gap-1.5 pt-1.5 mt-1 border-t border-slate-100 text-[10px] font-semibold text-emerald-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                                <span>Проблемът е окончателно разрешен!</span>
-                            </div>`;
-                        } else if (isOwner) {
-                            // ДОБАВЕНО UX ПОДОБРЕНИЕ: Ако е авторът, му се дава директен бутон за бързо приключване
-                            votingSection = `
-                                <div class="pt-2.5 mt-1 border-t border-slate-100">
-                                    <button onclick="closeSignalByOwner(${signal.id})" class="w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold py-2 px-2 rounded-xl text-[11px] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-indigo-600/25">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-                                        Затвори сигнала веднага
-                                    </button>
+                            let votingSection = "";
+                            if (isResolved) {
+                                votingSection = `<div class="flex items-center justify-center gap-1.5 pt-1.5 mt-1 border-t border-slate-100 text-[10px] font-semibold text-emerald-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                    <span>Проблемът е окончателно разрешен!</span>
                                 </div>`;
-                        } else if (hasVoted) {
-                            votingSection = `<div class="flex items-center justify-center gap-1.5 pt-1.5 mt-1 border-t border-slate-100 text-[10px] font-semibold text-slate-400 bg-slate-50 py-1 rounded-lg">
-                                <span>Гласували сте за този ремонт</span>
-                            </div>`;
-                        } else {
-                            votingSection = `
-                                <div class="pt-2 mt-1 border-t border-slate-100 space-y-1.5">
-                                    <p class="text-[10px] text-slate-400 text-center font-medium leading-tight">Ремонтиран ли е проблемът вече?</p>
-                                    <button onclick="voteSignal(${signal.id})" class="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-bold py-1.5 px-2 rounded-xl text-[11px] cursor-pointer transition-all duration-200 shadow-sm hover:shadow-teal-600/20 active:scale-98">
-                                        Да, потвърждавам ремонт
-                                    </button>
+                            } else if (isOwner) {
+                                // ДОБАВЕНО UX ПОДОБРЕНИЕ: Ако е авторът, му се дава директен бутон за бързо приключване
+                                votingSection = `
+                                    <div class="pt-2.5 mt-1 border-t border-slate-100">
+                                        <button onclick="closeSignalByOwner(${signal.id})" class="w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold py-2 px-2 rounded-xl text-[11px] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-indigo-600/25">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+                                            Затвори сигнала веднага
+                                        </button>
+                                    </div>`;
+                            } else if (hasVoted) {
+                                votingSection = `<div class="flex items-center justify-center gap-1.5 pt-1.5 mt-1 border-t border-slate-100 text-[10px] font-semibold text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                    <span>Вие вече гласувахте за този сигнал.</span>
                                 </div>`;
-                        }
+                            } else {
+                                votingSection = `
+                                    <div class="pt-2.5 mt-1 border-t border-slate-100 space-y-2">
+                                        <p class="text-[11px] font-bold text-slate-600 text-center">Проблемът все още ли е там?</p>
+                                        <div class="flex gap-2">
+                                            <button onclick="voteSignal(${signal.id}, 'still_there')" class="w-1/2 inline-flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-500 text-amber-700 hover:text-white border border-amber-300 hover:border-amber-500 font-bold py-1.5 px-1 rounded-xl text-[10px] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                                                Още е там
+                                            </button>
+                                            <button onclick="voteSignal(${signal.id}, 'fixed')" class="w-1/2 inline-flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 hover:border-emerald-600 font-bold py-1.5 px-1 rounded-xl text-[10px] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                                Оправен е
+                                            </button>
+                                        </div>
+                                    </div>`;
+                            }
 
-                        let imageBlock = "";
-                        if (signal.image_url) {
-                            imageBlock = `<div class="mt-1.5 rounded-xl overflow-hidden border border-slate-100"><img src="${signal.image_url}" class="w-full h-24 object-cover"></div>`;
-                        }
+                            const priorityValue = signal.priority || 'Нормален';
+                            const priorityKey = String(priorityValue).toLowerCase();
+                            let priorityBadgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                            if (priorityKey.includes('high') || priorityKey.includes('висок') || priorityKey.includes('спешен')) {
+                                priorityBadgeClass = 'bg-rose-50 text-rose-600 border-rose-200';
+                            } else if (priorityKey.includes('medium') || priorityKey.includes('среден') || priorityKey.includes('норм')) {
+                                priorityBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                            } else if (priorityKey.includes('low') || priorityKey.includes('нисък')) {
+                                priorityBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                            }
 
-                        let priorityValue = signal.ai_priority || "Нормален";
-                        let priorityKey = priorityValue.toLowerCase();
-                        let priorityBadgeClass = 'bg-slate-50 text-slate-700 border-slate-200';
-                        if (priorityKey.includes('high') || priorityKey.includes('висок') || priorityKey.includes('крити')) {
-                            priorityBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
-                        } else if (priorityKey.includes('medium') || priorityKey.includes('среден') || priorityKey.includes('норм')) {
-                            priorityBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                        } else if (priorityKey.includes('low') || priorityKey.includes('нисък')) {
-                            priorityBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                        }
+                            const popupContent = `
+                                <div class="font-sans text-xs space-y-2 max-w-[228px]">
+                                    <div class="flex justify-between items-center gap-2 border-b border-slate-100 pb-2">
+                                        <span class="font-black text-slate-900 text-sm tracking-tight">Сигнал №${signal.id}</span>
+                                        <span class="shrink-0 text-[9px] uppercase font-bold tracking-wide px-2 py-0.5 rounded-full border ${priorityBadgeClass}">${priorityValue}</span>
+                                    </div>
+                                    <p class="text-slate-700 font-medium leading-relaxed">${signal.corrected_text || 'Няма описание'}</p>
+                                    <div class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-indigo-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>
+                                        ${signal.assigned_institution || 'Община Пловдив'}
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-center gap-1.5 px-2 py-1.5 ${isResolved ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'} border rounded-full text-center font-bold text-[10px]">
+                                        <span class="w-1.5 h-1.5 rounded-full ${isResolved ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+                                        Статус: ${signal.status}
+                                    </div>
 
-                        const popupContent = `
-                            <div class="font-sans text-xs space-y-2 max-w-[228px]">
-                                <div class="flex justify-between items-center gap-2 border-b border-slate-100 pb-2">
-                                    <span class="font-black text-slate-900 text-sm tracking-tight">Сигнал №${signal.id}</span>
-                                    <span class="shrink-0 text-[9px] uppercase font-bold tracking-wide px-2 py-0.5 rounded-full border ${priorityBadgeClass}">${priorityValue}</span>
+                                    <div class="flex items-stretch text-[10px] text-slate-500 font-medium bg-slate-50 border border-slate-100 rounded-xl overflow-hidden">
+                                        <span class="flex-1 flex items-center justify-center gap-1 px-1 py-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                                            Активен: <b class="text-slate-700">${signal.votes_still_there || 0}</b>
+                                        </span>
+                                        <span class="w-px bg-slate-200"></span>
+                                        <span class="flex-1 flex items-center justify-center gap-1 px-1 py-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                            Поправен: <b class="text-slate-700">${signal.votes_fixed || 0}/3</b>
+                                        </span>
+                                    </div>
+                                    
+                                    ${votingSection}
                                 </div>
-                                <p class="text-slate-700 font-medium leading-relaxed">${signal.corrected_text || 'Няма описание'}</p>
-                                <div class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-indigo-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>
-                                    ${signal.assigned_institution || 'Община Пловдив'}
-                                </div>
-                                <div class="flex items-center justify-center gap-1.5 px-2 py-1.5 ${isResolved ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'} border rounded-full text-center font-bold text-[10px]">
-                                    <span>Статус: ${isResolved ? 'Решен' : 'Активен'}</span>
-                                </div>
-                                ${imageBlock}
-                                ${votingSection}
-                            </div>
-                        `;
-
-                        marker.bindPopup(popupContent);
-                        markerClusterGroup.addLayer(marker);
+                            `;
+                            marker.bindPopup(popupContent);
+                            markerClusterGroup.addLayer(marker);
+                        }
                     });
                 }
             } catch (err) {
-                console.error('Грешка при зареждане на публичните маркери:', err);
+                console.error("Грешка при зареждане на маркерите:", err);
             }
         }
 
-        async function voteSignal(id) {
-            try {
-                const response = await fetch('/api/vote-signal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-                const result = await response.json();
-                if (response.ok && result.success) {
-                    localStorage.setItem(`voted_signal_${id}`, 'true');
-                    showNotification('✔ Вашият глас за извършен ремонт беше отчетен успешно!', 'success');
-                    map.closePopup();
-                    loadPublicSignals();
-                } else {
-                    showNotification(`❌ ${result.error || 'Неуспешно гласуване.'}`, 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                showNotification('❌ Мрежова грешка при гласуване.', 'error');
-            }
-        }
+        loadPublicSignals();
 
-        // =========================================================================
-        // ОБРАБОТКА И ИЗПРАЩАНЕ НА ФОРМАТА (SUBMIT FORM TO API)
-        // =========================================================================
-        document.getElementById('signalForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
+        document.getElementById('signalForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
             const submitButton = this.querySelector('button[type="submit"]');
-            const originalButtonContent = submitButton.innerHTML;
+            const originalButtonText = submitButton.innerHTML;
             
             submitButton.disabled = true;
+            // МОДЕРНО UI ПОДОБРЕНИЕ №1: Интегриран пулсиращ статус и въртящ се Tailwind спинер за AI обработка
             submitButton.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span class="font-semibold">AI Агентът анализира и генерира АПК писмо...</span>
-                </div>
+              <div class="flex items-center justify-center gap-2">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="animate-pulse font-semibold">AI Агентът анализира и генерира АПК писмо...</span>
+              </div>
             `;
             submitButton.classList.add('opacity-80', 'cursor-not-allowed');
 
@@ -1024,121 +1033,118 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
+
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    showNotification(`✔ <strong>Успех!</strong> Сигналът е изпратен успешно.`, 'success');
-                    
+                    showNotification(`✔ <strong>Успех!</strong> Сигналът ви е заведен под <strong>ID №${result.data.id}</strong>.`, 'success');
+                
                     // ДОБАВЕНО: Записваме токена в речника на Local Storage веднага при създаване на сигнала
                     if (result.data && result.data.id && result.data.owner_token) {
                         localStorage.setItem(`owner_token_signal_${result.data.id}`, result.data.owner_token);
                     }
-
-                    // Модифицирано: Обновяваме новия комбиниран блок за успех над формата
                     const letterContainer = document.getElementById('officialLetterContainer');
                     const letterText = document.getElementById('officialLetterText');
-                    const successIdSpan = document.getElementById('successSignalId');
-
-                    if (successIdSpan) {
-                        successIdSpan.innerHTML = `<strong>ID №${result.data.id}</strong>`;
-                    }
 
                     if (letterContainer && letterText && result.data.official_letter) {
                         letterText.textContent = result.data.official_letter;
                         letterContainer.classList.remove('hidden');
-                        setTimeout(() => {
-                            letterContainer.classList.remove('scale-95', 'opacity-0');
-                            letterContainer.classList.add('scale-100', 'opacity-100');
-                            
-                            // Автоматично скролиране до заглавието на успеха
-                            letterContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }, 50);
+                        setTimeout(() => { letterContainer.classList.remove('scale-95', 'opacity-0'); letterContainer.classList.add('scale-100', 'opacity-100'); }, 50);
                     }
 
                     this.reset();
                     clearUserMarker();
-
+                    
                     // Нулиране на Drag & Drop визуалната зона при успешен ресет на формата
                     if (typeof window.resetDragAndDropZone === 'function') {
                         window.resetDragAndDropZone();
                     }
-
+                    
                     const previewContainer = document.getElementById('imagePreviewContainer');
                     if (previewContainer) previewContainer.classList.add('hidden');
                     
                     loadPublicSignals();
                 } else {
-                    showNotification(`❌ <strong>Грешка:</strong> ${result.error || 'Възникна техническа грешка при обработката.'}`, 'error');
+                    showNotification(`❌ <strong>Грешка:</strong> ${result.error || 'Проблем при обработка.'}`, 'error');
                 }
-            } catch (err) {
-                console.error(err);
-                showNotification('❌ <strong>Критичен срив:</strong> Няма връзка с AI сървъра.', 'error');
+            } catch (error) {
+                showNotification('❌ <strong>Срив в мрежата:</strong> Сървърът не отговаря.', 'error');
             } finally {
                 submitButton.disabled = false;
-                submitButton.innerHTML = originalButtonContent;
+                submitButton.innerHTML = originalButtonText;
                 submitButton.classList.remove('opacity-80', 'cursor-not-allowed');
             }
         });
 
-        // =========================================================================
-        // ФУНКЦИЯ ЗА СЛЕДЕНЕ НА СТАТУС НА СИГНАЛ (TRACKING CODE)
-        // =========================================================================
         async function trackSignal() {
-            const idInput = document.getElementById('searchSignalId');
+            const idInput = document.getElementById('searchSignalId').value.trim();
             const resultDiv = document.getElementById('trackResult');
-            if (!idInput || !resultDiv) return;
+            if(!idInput) { showNotification("Моля, въведете номер на сигнал в полето за търсене.", "error"); return; }
 
-            const id = idInput.value.trim();
-            if (!id) {
-                showNotification('⚠️ Моля, въведете номер на сигнал!', 'info');
-                return;
-            }
+            resultDiv.classList.remove('hidden');
+            
+            // МОДЕРНО UI ПОДОБРЕНИЕ №2: Професионален пулсиращ Skeleton Loader (симулиращ структурата на бъдещите данни)
+            resultDiv.innerHTML = `
+                <div class="animate-pulse space-y-3 p-1">
+                    <div class="flex justify-between items-center">
+                        <div class="h-3.5 bg-slate-200 rounded w-1/3"></div>
+                        <div class="h-4 bg-indigo-200 rounded w-1/5"></div>
+                    </div>
+                    <div class="space-y-2 pt-1">
+                        <div class="h-3 bg-slate-200 rounded w-2/3"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                        <div class="h-2.5 bg-slate-100 rounded w-1/3 pt-1"></div>
+                    </div>
+                </div>
+            `;
 
             try {
-                const response = await fetch(`/api/track-signal?id=${id}`);
-                const result = await response.json();
+                // Малък UX забавител (400ms) за плавен преход, за да не премигне грозно при моментален отговор от мрежата
+                await new Promise(resolve => setTimeout(resolve, 400));
 
-                resultDiv.classList.remove('hidden');
+                const res = await fetch(`/api/get-signals`);
+                const result = await res.json();
                 
-                if (response.ok && result.success) {
-                    const found = result.data;
-                    const isRes = found.status === 'resolved' || found.status === 'Решен';
-                    
-                    // Проверка дали текущият браузър държи собственическия ключ (Token) за този сигнал
-                    const isOwner = !!localStorage.getItem(`owner_token_signal_${found.id}`);
-                    
-                    // ДОБАВЕНО: Ако е собственикът и сигналът все още не е затворен, рендерираме бутона в кутията за проследяване
-                    const trackingActionBtn = (!isRes && isOwner) ? `
-                        <div class="pt-2 mt-1 border-t border-amber-200/40">
-                            <button id="owner-close-btn" onclick="closeSignalByOwner(${found.id})" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-2 rounded-lg text-[10px] cursor-pointer transition transform hover:-translate-y-0.5 active:translate-y-0 text-center shadow-sm">
-                                ⚡ Прекрати & Затвори сигнала веднага
-                            </button>
-                        </div>
-                    ` : '';
+                if (result.success) {
+                    const found = result.data.find(s => s.id == idInput);
+                    if(found) {
+                        const isRes = found.status === 'Разрешен от граждани' || found.status === 'Решен';
+                        const isOwner = !!localStorage.getItem(`owner_token_signal_${found.id}`);
+                        
+                        // ДОБАВЕНО: Интегриране на бързия бутон за управление вътре в кутията за проследяване
+                        const trackingActionBtn = (!isRes && isOwner) 
+                            ? `<div class="pt-2 mt-1 border-t border-amber-200/40">
+                                   <button id="owner-close-btn" onclick="closeSignalByOwner(${found.id})" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-2 rounded-lg text-[10px] cursor-pointer transition transform hover:-translate-y-0.5 active:translate-y-0 text-center shadow-sm">
+                                        ⚡ Прекрати & Затвори сигнала веднага
+                                   </button>
+                               </div>`
+                            : '';
 
-                    resultDiv.innerHTML = `
-                        <div class="font-bold border-b border-amber-200/60 pb-1.5 mb-1.5 text-amber-950 flex justify-between items-center">
-                            <span>Резултат за Сигнал №${found.id}:</span>
-                            <span class="${isRes ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} px-2 py-0.5 rounded-md font-bold text-[11px]">
-                                ${isRes ? 'Решен' : 'Активен'}
-                            </span>
-                        </div>
-                        <p class="font-medium text-slate-800 text-[11px] leading-tight mb-1"><b>Орган:</b> ${found.assigned_institution || 'Община Пловдив'}</p>
-                        <p class="text-slate-500 font-mono text-[10px] whitespace-pre-wrap leading-normal bg-amber-50/40 p-2 rounded-lg border border-amber-100/40 max-h-36 overflow-y-auto">${found.official_letter || 'Документът се генерира...'}</p>
-                        ${trackingActionBtn}
-                    `;
+                        resultDiv.innerHTML = `
+                            <div class="font-bold border-b border-amber-200/60 pb-1.5 mb-1.5 text-amber-950 flex justify-between items-center">
+                                <span>Резултат за Сигнал №${found.id}:</span>
+                                <span class="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wide">${found.priority || 'Нормален'}</span>
+                            </div>
+                            <div class="space-y-1">
+                                <div><b>Текущ Статус:</b> <span class="${isRes ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} px-2 py-0.5 rounded-md font-bold text-[11px] transition-all duration-300">${found.status}</span></div>
+                                <div><b>Определен Орган:</b> <span class="text-slate-800 font-medium">${found.assigned_institution}</span></div>
+                                <div class="text-slate-400 text-[10px] pt-1 italic">Дата на регистрация: ${new Date(found.created_at).toLocaleDateString('bg-BG')}</div>
+                                ${trackingActionBtn}
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `<div class="text-rose-700 font-semibold p-1">✕ Сигнал с номер №${idInput} не съществува в архивите на Пловдив.</div>`;
+                    }
                 } else {
-                    resultDiv.innerHTML = `<span class="text-rose-600 font-bold">❌ Не е намерен сигнал №${id}</span>`;
+                    resultDiv.innerHTML = "<div class='text-rose-700 p-1'>❌ Неуспешен опит за връзка с базата данни.</div>";
                 }
-            } catch (err) {
-                console.error(err);
-                resultDiv.classList.remove('hidden');
-                resultDiv.innerHTML = '<span class="text-rose-600 font-bold">❌ Системна грешка при проверка на статуса.</span>';
+            } catch(err) {
+                resultDiv.innerHTML = "<div class='text-rose-700 p-1'>❌ Мрежова грешка при проверка на статуса.</div>";
             }
         }
 
         // =========================================================================
-        // ПОДОБРЕНИЕ ЗА АВТОМАТИЧНО ПРОСЛЕДЯВАНЕ ПРЕЗ ДИРЕКТЕН URL (DEEP LINKING)
+        // НОВ И КЛЮЧОВ UX БЛОК: URL ОБРАБОТКА, ИЗЧИСТВАНЕ И АВТОМАТИЧНО ФОКУСИРАНЕ
         // =========================================================================
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -1166,6 +1172,6 @@
             }
         });
         // =========================================================================
-    </script>  
+</script>  
 </body>
 </html>
