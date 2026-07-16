@@ -551,7 +551,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// ОБНОВЕНА ЛОГИКА: Персонализирана функция за създаване на изцяло ЧЕРВЕНИ клъстери
+// ОБНОВЕНА ЛОГИКА: Персонализирана функция за създаване на изцяло ЧЕРВЕНИ/КЪСТЪМ клъстери
 const markerClusterGroup = L.markerClusterGroup({
     iconCreateFunction: function(cluster) {
         const childCount = cluster.getChildCount();
@@ -562,32 +562,32 @@ const markerClusterGroup = L.markerClusterGroup({
                     display: flex; 
                     align-items: center; 
                     justify-content: center; 
-                    width: 40px; 
-                    height: 40px; 
-                    background-color: rgba(239, 68, 68, 0.4); 
+                    width: 42px; 
+                    height: 42px; 
+                    background-color: rgba(0, 168, 150, 0.25); /* Прозрачен тюркоазен ореол (цвета на тепетата) */
                     border-radius: 50%;
                 ">
                     <div style="
-                        width: 28px; 
-                        height: 28px; 
-                        background-color: #ef4444; 
+                        width: 30px; 
+                        height: 30px; 
+                        background-color: #0d1b3e; /* Дълбоко тъмносиньо (цвета на робота) */
                         border-radius: 50%; 
-                        border: 2px solid white; 
-                        box-shadow: 0 0 8px rgba(239, 68, 68, 0.8); 
+                        border: 2px solid #ffb703; /* Жълт кант (цвета на сърцето) */
+                        box-shadow: 0 0 10px rgba(13, 27, 62, 0.5); 
                         display: flex; 
                         align-items: center; 
                         justify-content: center; 
-                        color: white; 
-                        font-family: sans-serif; 
+                        color: #ffb703; /* Жълт цвят за цифрата, за да изпъква */
+                        font-family: 'Montserrat', sans-serif; 
                         font-weight: bold; 
-                        font-size: 12px;
+                        font-size: 13px;
                     ">
                         ${childCount}
                     </div>
                 </div>
             `, 
-            className: 'custom-red-cluster', 
-            iconSize: L.point(40, 40) 
+            className: 'custom-tepeta-cluster', 
+            iconSize: L.point(42, 42) 
         });
     }
 });
