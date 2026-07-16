@@ -65,7 +65,8 @@ export default async function handler(req, res) {
       .update({ 
         status: 'Решен', // 🎯 ТОЧНО съвпадение с констрейнта ти!
         votes_fixed: 3, 
-        votes_still_there: existingSignal.votes_still_there || 0
+        votes_still_there: existingSignal.votes_still_there || 0,
+        updated_at: new Date().toISOString()
       })
       .eq('id', id);
 
