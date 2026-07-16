@@ -547,8 +547,8 @@ const map = L.map('map', {
     fullscreenControl: true
 }).setView([42.14492, 24.75032], 13);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 }).addTo(map);
 
 // ОБНОВЕНА ЛОГИКА: Персонализирана функция за създаване на изцяло ЧЕРВЕНИ/КЪСТЪМ клъстери
