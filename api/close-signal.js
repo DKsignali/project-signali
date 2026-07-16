@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     const { error: updateOwnerError } = await supabase
       .from('signals')
       .update({ 
-        status: 'Решен', // 🎯 ТОЧНО съвпадение с констрейнта ти!
+        status: 'Решен',
         votes_fixed: 3, 
         votes_still_there: existingSignal.votes_still_there || 0,
         updated_at: new Date().toISOString()
