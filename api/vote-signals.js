@@ -130,7 +130,8 @@ export default async function handler(req, res) {
       .update({ 
         votes_still_there: updatedVotesStillThere,
         votes_fixed: updatedVotesFixed,
-        status: newStatus
+        status: newStatus,
+        updated_at: new Date().toISOString()
       })
       .eq('id', id);
 
