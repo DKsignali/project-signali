@@ -601,31 +601,41 @@ map.addLayer(markerClusterGroup);
             document.getElementById('longitude').value = '';
             document.getElementById('locationBadge').classList.add('hidden');
         }
+// 1. Дефиниране на новата икона с твоето роботче
+const aiUserIcon = L.icon({
+    iconUrl: 'assets/pin-marker.png.png', // ТУК СЛОЖИ ПЪТЯ ДО ТВОЯ PNG ФАЙЛ
+    iconSize:     [40, 48],       // Оптимален размер на екрана [ширина, височина]
+    iconAnchor:   [20, 48],       // Сочи точно към най-долния остър връх на пина (тъй като е 48px висок)
+    popupAnchor:  [0, -42]        // Откъде да изскача балончето с текст спрямо центъра на пина
+});
+map.on('click', function(e) {
+    document.getElementById('latitude').value = e.latlng.lat;
+    document.getElementById('longitude').value = e.latlng.lng;
+    document.getElementById('locationBadge').classList.remove('hidden');
 
-        map.on('click', function(e) {
-            document.getElementById('latitude').value = e.latlng.lat;
-            document.getElementById('longitude').value = e.latlng.lng;
-            document.getElementById('locationBadge').classList.remove('hidden');
+    const popupText = `
+        <div class="text-center space-y-1 font-sans">
+            <b>Място на вашия сигнал</b><br>
+            <button type="button" onclick="clearUserMarker()" class="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer">✕ Премахни маркер</button>
+        </div>
+    `;
 
-            const popupText = `
-                <div class="text-center space-y-1 font-sans">
-                    <b>Място на вашия сигнал</b><br>
-                    <button type="button" onclick="clearUserMarker()" class="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer">✕ Премахни маркер</button>
-                </div>
-            `;
-
-            if (userMarker) {
-                userMarker.setLatLng(e.latlng);
-            } else {
-                userMarker = L.marker(e.latlng, {draggable: true}).addTo(map).bindPopup(popupText).openPopup();
-                userMarker.on('moveend', function(ev) {
-                    const pos = ev.target.getLatLng();
-                    document.getElementById('latitude').value = pos.lat;
-                    document.getElementById('longitude').value = pos.lng;
-                });
-            }
+    if (userMarker) {
+        userMarker.setLatLng(e.latlng);
+    } else {
+        // Създаваме новия маркер с параметъра "icon: aiUserIcon"
+        userMarker = L.marker(e.latlng, {
+            draggable: true,
+            icon: aiUserIcon // <--- Използваме новото брандирано роботче!
+        }).addTo(map).bindPopup(popupText).openPopup();
+        
+        userMarker.on('moveend', function(ev) {
+            const pos = ev.target.getLatLng();
+            document.getElementById('latitude').value = pos.lat;
+            document.getElementById('longitude').value = pos.lng;
         });
-
+    }
+});
         // =========================================================================
         // ИНТЕГРИРАНА DRAG & DROP ПОДСИСТЕМА И ЛОКАЛНА КОМПРЕСИЯ ЗА СНИМКИ
         // =========================================================================
