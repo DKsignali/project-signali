@@ -1331,16 +1331,34 @@ async function closeSignalByOwner(id) {
         });
         // =========================================================================
     // Функция за показване/скриване на чата с робота
-function toggleHelpChat() {
-    const windowEl = document.getElementById('help-chat-window');
-    if (windowEl) {
-        windowEl.classList.toggle('d-none');
-    }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    const chatBtn = document.getElementById('helpChatBtn');
+    const chatWindow = document.getElementById('helpChatWindow');
+
+    // 1. Отваряне и затваряне при натискане на самото балонче
+    chatBtn.addEventListener('click', function(event) {
+        event.stopPropagation(); // Спира събитието да стигне до document
+        if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
+            chatWindow.style.display = 'flex'; // Показва прозореца
+        } else {
+            chatWindow.style.display = 'none';  // Скрива прозореца
+        }
+    });
+
+    // 2. Предотвратява затваряне, ако потребителят кликне вътре в самия прозорец
+    chatWindow.addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
+
+    // 3. Затваряне при кликване навсякъде другаде по екрана
+    document.addEventListener('click', function() {
+        chatWindow.style.display = 'none';
+    });
+});
 </script>  
-    <!-- Брандирано помощно чат балонче -->
+<!-- Брандирано помощно чат балонче -->
 <div id="help-chat-widget" class="help-chat-container">
-    <button id="help-chat-trigger" class="help-chat-btn" onclick="toggleHelpChat()" aria-label="Помощ при подаване">
+    <button id="helpChatBtn" class="help-chat-btn" aria-label="Помощ при подаване">
         <div class="bot-icon-wrapper">
             <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" class="bot-svg">
                 <path d="M50,110 C90,75 90,45 90,40 A40,40 0 0,0 10,40 C10,45 10,75 50,110 Z" fill="#111638" stroke="#ffffff" stroke-width="2"/>
@@ -1365,13 +1383,14 @@ function toggleHelpChat() {
         <span class="chat-btn-text">Имаш нужда от помощ?</span>
     </button>
 
-    <div id="help-chat-window" class="help-chat-window d-none">
+    <!-- КОРЕКЦИЯ: Ново id="helpChatWindow" и добавен стил за начално скриване (display: none;) -->
+    <div id="helpChatWindow" class="help-chat-window" style="display: none;">
         <div class="help-chat-header">
             <div class="header-title-area">
                 <span class="bot-status-dot"></span>
                 <h5>Асистент по сигналите</h5>
             </div>
-            <button class="btn-close btn-close-white" onclick="toggleHelpChat()"></button>
+            <!-- КОРЕКЦИЯ: Бутонът "Х" е изцяло премахнат оттук -->
         </div>
         <div class="help-chat-body">
             <p class="intro-text">Привет! Аз съм твоят дигитален помощник за град Пловдив. Ето как да направиш сигнала си перфектен:</p>
@@ -1409,6 +1428,6 @@ function toggleHelpChat() {
             </div>
         </div>
     </div>
-</div>
+</div>    
 </body>
 </html>
