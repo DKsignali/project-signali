@@ -157,49 +157,80 @@
     z-index: 2000;
     font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* Компактен кръгъл бутон */
 .help-chat-btn {
     background-color: #111638;
     color: white;
     border: 3px solid #ffffff;
-    border-radius: 50px;
-    padding: 8px 20px 8px 10px;
+    border-radius: 50%; /* Прави бутона идеален кръг */
+    width: 60px;       /* Фиксирана малка ширина */
+    height: 60px;      /* Фиксирана малка височина */
+    padding: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
     box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3);
     cursor: pointer;
+    position: relative;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     animation: botPulse 2.5s infinite;
 }
+
 @keyframes botPulse {
     0% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0.4); }
-    70% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 15px rgba(0, 180, 216, 0); }
+    70% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 12px rgba(0, 180, 216, 0); }
     100% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0); }
 }
+
 .help-chat-btn:hover {
-    transform: scale(1.05) translateY(-3px);
+    transform: scale(1.08) translateY(-3px);
     background-color: #1a2154;
 }
+
+/* Контейнер за SVG роботчето */
 .bot-icon-wrapper {
-    width: 45px;
-    height: 50px;
+    width: 38px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
+
 .bot-svg {
     width: 100%;
     height: 100%;
     filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
 }
+
+/* Текстът се превръща в изскачаща подсказка при задържане на мишката */
 .chat-btn-text {
-    font-weight: 600;
-    font-size: 0.95rem;
+    position: absolute;
+    right: 75px;
+    background-color: #111638;
     color: #ffffff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
+
+/* Показване на текста само при ховър */
+.help-chat-btn:hover .chat-btn-text {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Чат Прозорец */
 .help-chat-window {
     position: absolute;
-    bottom: 70px;
+    bottom: 75px;
     right: 0;
     width: 340px;
     max-height: 480px;
@@ -212,10 +243,12 @@
     overflow: hidden;
     animation: widgetSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
 @keyframes widgetSlideUp {
     from { opacity: 0; transform: translateY(20px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
 .help-chat-header {
     background-color: #111638;
     color: white;
@@ -225,11 +258,13 @@
     align-items: center;
     border-bottom: 3px solid #fbc02d;
 }
+
 .header-title-area {
     display: flex;
     align-items: center;
     gap: 8px;
 }
+
 .bot-status-dot {
     width: 8px;
     height: 8px;
@@ -238,22 +273,26 @@
     display: inline-block;
     box-shadow: 0 0 8px #00b4d8;
 }
+
 .help-chat-header h5 {
     margin: 0;
     font-size: 1.05rem;
     font-weight: 600;
 }
+
 .help-chat-body {
     padding: 18px;
     overflow-y: auto;
     background-color: #f8f9fa;
 }
+
 .intro-text {
     font-size: 0.88rem;
     color: #495057;
     margin-bottom: 18px;
     line-height: 1.45;
 }
+
 .tip-item {
     display: flex;
     gap: 14px;
@@ -266,18 +305,18 @@
     border-left: 3px solid #00b4d8;
     transition: transform 0.2s ease;
 }
+
 .tip-item:hover { transform: translateX(3px); }
 .tip-icon { font-size: 1.4rem; line-height: 1; }
 .tip-item strong { display: block; font-size: 0.9rem; color: #111638; margin-bottom: 3px; }
 .tip-item p { margin: 0; font-size: 0.82rem; color: #6c757d; line-height: 1.4; }
 .tip-item:last-child { border-left-color: #28a745; }
 
+/* Мобилни устройства */
 @media (max-width: 576px) {
     .help-chat-container { bottom: 15px; right: 15px; }
-    .help-chat-window { width: calc(100vw - 30px); right: 0; bottom: 65px; }
-    .chat-btn-text { display: none; }
-    .help-chat-btn { padding: 5px; border-radius: 50%; width: 56px; height: 56px; justify-content: center; }
-    .bot-icon-wrapper { width: 40px; height: 45px; }
+    .help-chat-window { width: calc(100vw - 30px); right: 0; bottom: 70px; }
+    .chat-btn-text { display: none !important; } /* Напълно спираме подсказката на телефони */
 }
     </style>
 </head>
