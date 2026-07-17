@@ -149,6 +149,136 @@
             border: 2px solid white;
             box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
         }
+        /* Помощно чат балонче с робот */
+.help-chat-container {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 2000;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+.help-chat-btn {
+    background-color: #111638;
+    color: white;
+    border: 3px solid #ffffff;
+    border-radius: 50px;
+    padding: 8px 20px 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: botPulse 2.5s infinite;
+}
+@keyframes botPulse {
+    0% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0.4); }
+    70% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 15px rgba(0, 180, 216, 0); }
+    100% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0); }
+}
+.help-chat-btn:hover {
+    transform: scale(1.05) translateY(-3px);
+    background-color: #1a2154;
+}
+.bot-icon-wrapper {
+    width: 45px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.bot-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
+}
+.chat-btn-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #ffffff;
+}
+.help-chat-window {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 340px;
+    max-height: 480px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 36px rgba(17, 22, 56, 0.25);
+    border: 1px solid rgba(17, 22, 56, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: widgetSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes widgetSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.help-chat-header {
+    background-color: #111638;
+    color: white;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #fbc02d;
+}
+.header-title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.bot-status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #00b4d8;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px #00b4d8;
+}
+.help-chat-header h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+.help-chat-body {
+    padding: 18px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+}
+.intro-text {
+    font-size: 0.88rem;
+    color: #495057;
+    margin-bottom: 18px;
+    line-height: 1.45;
+}
+.tip-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+    background: white;
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    border-left: 3px solid #00b4d8;
+    transition: transform 0.2s ease;
+}
+.tip-item:hover { transform: translateX(3px); }
+.tip-icon { font-size: 1.4rem; line-height: 1; }
+.tip-item strong { display: block; font-size: 0.9rem; color: #111638; margin-bottom: 3px; }
+.tip-item p { margin: 0; font-size: 0.82rem; color: #6c757d; line-height: 1.4; }
+.tip-item:last-child { border-left-color: #28a745; }
+
+@media (max-width: 576px) {
+    .help-chat-container { bottom: 15px; right: 15px; }
+    .help-chat-window { width: calc(100vw - 30px); right: 0; bottom: 65px; }
+    .chat-btn-text { display: none; }
+    .help-chat-btn { padding: 5px; border-radius: 50%; width: 56px; height: 56px; justify-content: center; }
+    .bot-icon-wrapper { width: 40px; height: 45px; }
+}
     </style>
 </head>
 <body class="font-sans antialiased text-slate-900 selection:bg-blue-500 selection:text-white">
@@ -1200,6 +1330,85 @@ async function closeSignalByOwner(id) {
             }
         });
         // =========================================================================
+    // Функция за показване/скриване на чата с робота
+function toggleHelpChat() {
+    const windowEl = document.getElementById('help-chat-window');
+    if (windowEl) {
+        windowEl.classList.toggle('d-none');
+    }
+}
 </script>  
+    <!-- Брандирано помощно чат балонче -->
+<div id="help-chat-widget" class="help-chat-container">
+    <button id="help-chat-trigger" class="help-chat-btn" onclick="toggleHelpChat()" aria-label="Помощ при подаване">
+        <div class="bot-icon-wrapper">
+            <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" class="bot-svg">
+                <path d="M50,110 C90,75 90,45 90,40 A40,40 0 0,0 10,40 C10,45 10,75 50,110 Z" fill="#111638" stroke="#ffffff" stroke-width="2"/>
+                <rect x="25" y="22" width="50" height="36" rx="12" fill="#ffffff"/>
+                <rect x="29" y="26" width="42" height="28" rx="8" fill="#111638"/>
+                <rect x="20" y="32" width="6" height="16" rx="3" fill="#fbc02d"/>
+                <rect x="74" y="32" width="6" height="16" rx="3" fill="#fbc02d"/>
+                <line x1="50" y1="22" x2="50" y2="12" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="50" cy="10" r="4" fill="#fbc02d"/>
+                <line x1="50" y1="3" x2="50" y2="5" stroke="#00b4d8" stroke-width="2" stroke-linecap="round"/>
+                <line x1="43" y1="5" x2="45" y2="7" stroke="#00b4d8" stroke-width="2" stroke-linecap="round"/>
+                <line x1="57" y1="5" x2="55" y2="7" stroke="#00b4d8" stroke-width="2" stroke-linecap="round"/>
+                <path d="M50,85 C50,85 43,79 39,74 C35,69 37,63 42,63 C45,63 48,66 50,69 C52,66 55,63 58,63 C63,63 65,69 61,74 C57,79 50,85 50,85 Z" fill="#fbc02d"/>
+                <path d="M62,65 Q68,75 58,95 Q70,80 62,65" fill="#00b4d8"/>
+                <path d="M36,38 Q41,33 44,38" fill="none" stroke="#00b4d8" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M56,38 Q59,33 64,38" fill="none" stroke="#00b4d8" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M46,44 Q50,49 54,44" fill="none" stroke="#00b4d8" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="36" cy="44" r="1" fill="#00b4d8"/><circle cx="39" cy="46" r="1" fill="#00b4d8"/><circle cx="34" cy="46" r="1" fill="#00b4d8"/>
+                <circle cx="64" cy="44" r="1" fill="#00b4d8"/><circle cx="61" cy="46" r="1" fill="#00b4d8"/><circle cx="66" cy="46" r="1" fill="#00b4d8"/>
+            </svg>
+        </div>
+        <span class="chat-btn-text">Имаш нужда от помощ?</span>
+    </button>
+
+    <div id="help-chat-window" class="help-chat-window d-none">
+        <div class="help-chat-header">
+            <div class="header-title-area">
+                <span class="bot-status-dot"></span>
+                <h5>Асистент по сигналите</h5>
+            </div>
+            <button class="btn-close btn-close-white" onclick="toggleHelpChat()"></button>
+        </div>
+        <div class="help-chat-body">
+            <p class="intro-text">Привет! Аз съм твоят дигитален помощник за град Пловдив. Ето как да направиш сигнала си перфектен:</p>
+            
+            <div class="tip-item">
+                <span class="tip-icon">📍</span>
+                <div>
+                    <strong>Точна локация</strong>
+                    <p>Маркирай точното място върху картата. Всяка дупка или проблем си имат точен адрес.</p>
+                </div>
+            </div>
+
+            <div class="tip-item">
+                <span class="tip-icon">📸</span>
+                <div>
+                    <strong>Ясна снимка</strong>
+                    <p>Добрата светлина помага. Снимай дефекта отблизо, но направи и един кадър по-отдалеч за ориентир.</p>
+                </div>
+            </div>
+
+            <div class="tip-item">
+                <span class="tip-icon">✍️</span>
+                <div>
+                    <strong>Конкретно описание</strong>
+                    <p>Опиши накратко ситуацията. Институциите реагират по-бързо, когато детайлите са ясни от първия поглед.</p>
+                </div>
+            </div>
+
+            <div class="tip-item">
+                <span class="tip-icon">💚</span>
+                <div>
+                    <strong>Твоята суперсила</strong>
+                    <p>Като автор на сигнала, ти можеш да го затвориш ръчно от картата, когато проблемът бъде решен. Тогава той ще светне в зелено!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
