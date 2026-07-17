@@ -299,16 +299,23 @@
     margin-bottom: 16px;
     align-items: flex-start;
     background: white;
-    padding: 12px;
+    padding: 12px 12px 12px 9px; /* Намаляваме леко лявата вътрешна граница заради линията */
     border-radius: 12px;
     border: 1px solid rgba(0,0,0,0.03);
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     transition: transform 0.2s ease;
+    border-left: 3px solid transparent; /* Базова прозрачна линия */
 }
 
 .tip-item:hover {
     transform: translateY(-2px);
 }
+
+/* Специфични цветове за вертикалната линия на всяка стъпка */
+.text-step-1 { border-left-color: #d97706; } /* Жълта линия */
+.text-step-2 { border-left-color: #4f46e5; } /* Индиго/Лилава линия */
+.text-step-3 { border-left-color: #2563eb; } /* Синя линия */
+.text-step-4 { border-left-color: #16a34a; } /* Зелена линия */
 
 /* Стилизиране на модерните брандирани контейнери */
 .tip-icon-box {
@@ -326,7 +333,7 @@
     height: 20px;
 }
 
-/* Цветови палитри, съвпадащи със стъпките в сайта ти */
+/* Цветови палитри за кутийките на иконите */
 .box-yellow { background-color: #fffbeb; }
 .box-purple { background-color: #eef2ff; }
 .box-blue   { background-color: #eff6ff; }
