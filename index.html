@@ -726,12 +726,32 @@
                         <span>Изпрати сигнал към AI Агента</span>
                     </button>
                     
-                    <div id="officialLetterContainer" class="hidden mt-6 p-5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-3 shadow-sm transform transition duration-500 scale-95 opacity-0">
-                        <h4 class="text-sm font-bold text-emerald-900 flex items-center">
-                            <span class="mr-2">⚖️</span> Юридически оформен документ по чл. 107-111 от АПК:
-                        </h4>
-                        <pre id="officialLetterText" class="w-full text-xs text-slate-800 bg-white p-4 rounded-xl border border-slate-200 overflow-x-auto whitespace-pre-wrap font-mono shadow-inner max-h-80 leading-relaxed"></pre>
-                    </div>
+<div id="officialLetterContainer" class="hidden mt-6 p-5 bg-emerald-50/50 rounded-2xl border border-emerald-200/60 space-y-3 shadow-sm transform transition duration-500 scale-95 opacity-0">
+    <h4 class="text-sm font-bold text-slate-900 flex items-center">
+        <!-- Модерна институционална икона в стила на логото -->
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="#e58a00" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"
+            class="w-4 h-4 mr-2 shrink-0"
+        >
+            <path d="M3 21h18" />
+            <path d="M3 10h18" />
+            <path d="m5 6 7-3 7 3" />
+            <path d="M4 10v11" />
+            <path d="M20 10v11" />
+            <path d="M8 14v3" />
+            <path d="M12 14v3" />
+            <path d="M16 14v3" />
+        </svg>
+        Юридически оформен документ по чл. 107-111 от АПК:
+    </h4>
+    <pre id="officialLetterText" class="w-full text-xs text-slate-800 bg-white p-4 rounded-xl border border-slate-200 overflow-x-auto whitespace-pre-wrap font-mono shadow-inner max-h-80 leading-relaxed"></pre>
+</div>
                 </form>
             </div>
         </div>
