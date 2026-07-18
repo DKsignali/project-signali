@@ -1386,14 +1386,16 @@ async function closeSignalByOwner(id) {
     const result = await response.json();
 
     if (response.ok && result.success) {
-        // Добавяме подсказката със стрелката, използвайки чисти бекстикове без счупване
+        // Правим целия помощен блок активен линк (a) към документа
         showNotification(
             `✔ <strong>Успех!</strong> Сигналът ви е заведен под <strong>ID №${result.data.id}</strong>.
-             <div class="text-xs text-emerald-800/80 mt-1 flex items-center gap-1">
-                 <span>Юридически оформеният документ е генериран по-долу</span>
-                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 animate-bounce inline">
-                     <path d="M12 5v14M19 12l-7 7-7-7"/>
-                 </svg>
+             <div class="mt-1">
+                 <a href="#officialLetterContainer" class="text-xs text-emerald-800 hover:text-emerald-950 font-semibold underline decoration-dotted underline-offset-4 inline-flex items-center gap-1 transition">
+                     <span>Прегледай генерирания документ по-долу</span>
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 animate-bounce inline">
+                         <path d="M12 5v14M19 12l-7 7-7-7"/>
+                     </svg>
+                 </a>
              </div>`, 
             'success'
         );
@@ -1413,14 +1415,8 @@ async function closeSignalByOwner(id) {
                 letterContainer.classList.remove('scale-95', 'opacity-0'); 
                 letterContainer.classList.add('scale-100', 'opacity-100'); 
             }, 50);
-
-            // ПЛАВНО СКРОЛВАНЕ: Изчакваме малко анимацията да приключи и скролваме до писмото
-           setTimeout(() => {
-    letterContainer.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' // Промяна от 'center' на 'start'
-    });
-}, 800);
+            
+            // Автоматичният скрол е изтрит изцяло оттук, за да няма агресивно скачане на екрана
         }
 
         this.reset();
