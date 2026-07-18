@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <style>
+<style>
         :root {
             --brand-ink: #0b1020;
             --brand-indigo: #312e81;
@@ -149,218 +149,264 @@
             border: 2px solid white;
             box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
         }
+        
         /* Помощно чат балонче с робот */
-.help-chat-container {
-    position: fixed;
-    bottom: 25px;
-    right: 25px;
-    z-index: 2000;
-    font-family: system-ui, -apple-system, sans-serif;
-}
+        .help-chat-container {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 2000;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
 
-/* Компактен кръгъл бутон */
-.help-chat-btn {
-    background-color: #111638;
-    color: white;
-    border: 3px solid #ffffff;
-    border-radius: 50%; /* Прави бутона идеален кръг */
-    width: 60px;       /* Фиксирана малка ширина */
-    height: 60px;      /* Фиксирана малка височина */
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3);
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    animation: botPulse 2.5s infinite;
-}
+        /* Компактен кръгъл бутон */
+        .help-chat-btn {
+            background-color: #111638;
+            color: white;
+            border: 3px solid #ffffff;
+            border-radius: 50%; /* Прави бутона идеален кръг */
+            width: 60px;       /* Фиксирана малка ширина */
+            height: 60px;      /* Фиксирана малка височина */
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: botPulse 2.5s infinite;
+        }
 
-@keyframes botPulse {
-    0% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0.4); }
-    70% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 12px rgba(0, 180, 216, 0); }
-    100% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0); }
-}
+        @keyframes botPulse {
+            0% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0.4); }
+            70% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 12px rgba(0, 180, 216, 0); }
+            100% { box-shadow: 0 8px 24px rgba(17, 22, 56, 0.3), 0 0 0 0 rgba(0, 180, 216, 0); }
+        }
 
-.help-chat-btn:hover {
-    transform: scale(1.08) translateY(-3px);
-    background-color: #1a2154;
-}
+        .help-chat-btn:hover {
+            transform: scale(1.08) translateY(-3px);
+            background-color: #1a2154;
+        }
 
-/* Контейнер за SVG роботчето */
-.bot-icon-wrapper {
-    width: 38px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        /* Контейнер за SVG роботчето */
+        .bot-icon-wrapper {
+            width: 38px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-.bot-svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
-}
+        .bot-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
+        }
 
-/* Текстът се превръща в изскачаща подсказка при задържане на мишката */
-.chat-btn-text {
-    position: absolute;
-    right: 75px;
-    background-color: #111638;
-    color: #ffffff;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(10px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
+        /* Текстът се превръща в изскачаща подсказка при задържане на мишката */
+        .chat-btn-text {
+            position: absolute;
+            right: 75px;
+            background-color: #111638;
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
 
-/* Показване на текста само при ховър */
-.help-chat-btn:hover .chat-btn-text {
-    opacity: 1;
-    transform: translateX(0);
-}
+        /* Показване на текста само при ховър */
+        .help-chat-btn:hover .chat-btn-text {
+            opacity: 1;
+            transform: translateX(0);
+        }
 
-/* Чат Прозорец */
-.help-chat-window {
-    position: absolute;
-    bottom: 75px;
-    right: 0;
-    width: 340px;
-    max-height: 480px;
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 12px 36px rgba(17, 22, 56, 0.25);
-    border: 1px solid rgba(17, 22, 56, 0.1);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: widgetSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
+        /* Чат Прозорец */
+        .help-chat-window {
+            position: absolute;
+            bottom: 75px;
+            right: 0;
+            width: 340px;
+            max-height: 480px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 12px 36px rgba(17, 22, 56, 0.25);
+            border: 1px solid rgba(17, 22, 56, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: widgetSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
 
-@keyframes widgetSlideUp {
-    from { opacity: 0; transform: translateY(20px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
+        @keyframes widgetSlideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
-.help-chat-header {
-    background-color: #111638;
-    color: white;
-    padding: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 3px solid #fbc02d;
-}
+        .help-chat-header {
+            background-color: #111638;
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #fbc02d;
+        }
 
-.header-title-area {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-.bot-status-dot {
-    width: 8px;
-    height: 8px;
-    background-color: #00b4d8;
-    border-radius: 50%;
-    display: inline-block;
-    box-shadow: 0 0 8px #00b4d8;
-}
+        .bot-status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00b4d8;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #00b4d8;
+        }
 
-.help-chat-header h5 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-}
+        .help-chat-header h5 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
 
-.help-chat-body {
-    padding: 18px;
-    overflow-y: auto;
-    background-color: #f8f9fa;
-}
+        .help-chat-body {
+            padding: 18px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+        }
 
-.intro-text {
-    font-size: 0.88rem;
-    color: #495057;
-    margin-bottom: 18px;
-    line-height: 1.45;
-}
+        .intro-text {
+            font-size: 0.88rem;
+            color: #495057;
+            margin-bottom: 18px;
+            line-height: 1.45;
+        }
 
-.tip-item {
-    display: flex;
-    gap: 14px;
-    margin-bottom: 16px;
-    align-items: flex-start;
-    background: white;
-    padding: 12px 12px 12px 12px; 
-    border-radius: 12px;
-    border: 1px solid rgba(0,0,0,0.03);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    transition: transform 0.2s ease;
-    border-left: 2px solid transparent; 
-}
+        .tip-item {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+            align-items: flex-start;
+            background: white;
+            padding: 12px; 
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.03);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: transform 0.2s ease;
+            border-left: 2px solid transparent; 
+        }
 
-.tip-item:hover {
-    transform: translateY(-2px);
-}
+        .tip-item:hover {
+            transform: translateY(-2px);
+        }
 
-/* Специфични цветове за вертикалната линия на всяка стъпка */
-/* Фин заоблен кант с дебелина 2px */
-.text-step-1 { border-left-color: #d97706; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-.text-step-2 { border-left-color: #4f46e5; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-.text-step-3 { border-left-color: #2563eb; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-.text-step-4 { border-left-color: #16a34a; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+        /* Специфични цветове за вертикалната линия на всяка стъпка */
+        .text-step-1 { border-left-color: #d97706; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+        .text-step-2 { border-left-color: #4f46e5; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+        .text-step-3 { border-left-color: #2563eb; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+        .text-step-4 { border-left-color: #16a34a; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
 
-/* Стилизиране на модерните брандирани контейнери */
-.tip-icon-box {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
+        /* Стилизиране на модерните брандирани контейнери */
+        .tip-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
 
-.tip-icon-box svg {
-    width: 20px;
-    height: 20px;
-}
+        .tip-icon-box svg {
+            width: 20px;
+            height: 20px;
+        }
 
-/* Цветови палитри за кутийките на иконите */
-.box-yellow { background-color: #fffbeb; }
-.box-purple { background-color: #eef2ff; }
-.box-blue   { background-color: #eff6ff; }
-.box-green  { background-color: #f0fdf4; }
+        /* Цветови палитри за кутийките на иконите */
+        .box-yellow { background-color: #fffbeb; }
+        .box-purple { background-color: #eef2ff; }
+        .box-blue   { background-color: #eff6ff; }
+        .box-green  { background-color: #f0fdf4; }
 
-.tip-item strong {
-    display: block;
-    font-size: 0.9rem;
-    color: #111638;
-    margin-bottom: 3px;
-    font-weight: 700;
-}
+        .tip-item strong {
+            display: block;
+            font-size: 0.9rem;
+            color: #111638;
+            margin-bottom: 3px;
+            font-weight: 700;
+        }
 
-.tip-item p {
-    margin: 0;
-    font-size: 0.82rem;
-    color: #6c757d;
-    line-height: 1.4;
-}
+        .tip-item p {
+            margin: 0;
+            font-size: 0.82rem;
+            color: #6c757d;
+            line-height: 1.4;
+        }
 
-/* Мобилни устройства */
-@media (max-width: 576px) {
-    .help-chat-container { bottom: 15px; right: 15px; }
-    .help-chat-window { width: calc(100vw - 30px); right: 0; bottom: 70px; }
-    .chat-btn-text { display: none !important; } /* Напълно спираме подсказката на телефони */
-}
+        /* Мобилни устройства */
+        @media (max-width: 576px) {
+            .help-chat-container { bottom: 15px; right: 15px; }
+            .help-chat-window { width: calc(100vw - 30px); right: 0; bottom: 70px; }
+            .chat-btn-text { display: none !important; }
+        }
+
+        /* ========================================= */
+        /*   НОВ CSS КОД ЗА ТУЛТИПОВЕТЕ (ДОБАВЕН)     */
+        /* ========================================= */
+        .has-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-box {
+            visibility: hidden;
+            position: absolute;
+            bottom: 135%; /* Леко вдигнат нагоре, за да не застъпва иконата */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1e293b; /* slate-800 */
+            color: #ffffff;
+            text-align: left;
+            padding: 14px;
+            border-radius: 12px;
+            width: 280px;
+            font-size: 12px;
+            line-height: 1.5;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none; /* Пречи на балончето да премигва случайно */
+        }
+
+        /* Фина стрелка в долната част на балончето */
+        .tooltip-box::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+
+        .has-tooltip:hover .tooltip-box {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="font-sans antialiased text-slate-900 selection:bg-blue-500 selection:text-white">
@@ -531,36 +577,76 @@
 
                 <div id="statusNotification" class="hidden mb-6 p-4 rounded-xl text-sm font-medium transition duration-300 border"></div>
 
-                <form id="signalForm" class="space-y-6">
-                    <input type="hidden" id="latitude">
-                    <input type="hidden" id="longitude">
-                    
-                    <div class="bg-gradient-to-br from-indigo-50/70 to-indigo-50/20 p-5 rounded-2xl border border-indigo-100/70 space-y-4">
-                        <h4 class="text-[11px] font-bold text-indigo-950 uppercase tracking-[0.14em] flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            Данни за подателя (АПК изискване)
-                        </h4>
-                        
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Две или три имена <span class="text-rose-500">*</span></label>
-                            <input type="text" id="citizenName" required placeholder="напр. Димитър Колев"
-                                class="field w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm">
-                        </div>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Имейл адрес <span class="text-rose-500">*</span></label>
-                                <input type="email" id="citizenEmail" required placeholder="yourname@example.com"
-                                    class="field w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Телефон за връзка</label>
-                                <input type="tel" id="citizenPhone" placeholder="напр. 0888123456"
-                                    class="field w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm">
-                            </div>
-                        </div>
+<form id="signalForm" class="space-y-6">
+    <input type="hidden" id="latitude">
+    <input type="hidden" id="longitude">
+    
+    <!-- === ТОВА Е НОВИЯТ БЛОК С ТУЛТИПОВЕ, КОЙТО ЗАМЕНЯ СТАРИЯ === -->
+    <div class="bg-gradient-to-br from-indigo-50/70 to-indigo-50/20 p-5 rounded-2xl border border-indigo-100/70 space-y-4">
+        <h4 class="text-[11px] font-bold text-indigo-950 uppercase tracking-[0.14em] flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Данни за подателя (АПК изискване)
+        </h4>
+        
+        <!-- 1. Две или три имена -->
+        <div>
+            <div class="flex items-center gap-1.5 mb-1.5">
+                <label class="block text-xs font-semibold text-slate-600">Две или три имена <span class="text-rose-500">*</span></label>
+                <div class="has-tooltip cursor-help text-slate-400 hover:text-indigo-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                    <span class="tooltip-box">
+                        <span class="flex items-center gap-1.5 text-indigo-400 font-bold mb-1 text-[11px] uppercase tracking-wider">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            Защо е необходимо?
+                        </span>
+                        "Твоите имена ни трябват, за да бъде сигналът ти правно валиден според АПК. Общината не разглежда анонимни сигнали, така че правилното попълване е първата стъпка към успешния и законен ход на преписката."
+                    </span>
+                </div>
+            </div>
+            <input type="text" id="citizenName" required placeholder="напр. Димитър Колев"
+                class="field w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm">
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- 2. Имейл адрес -->
+            <div>
+                <div class="flex items-center gap-1.5 mb-1.5">
+                    <label class="block text-xs font-semibold text-slate-600">Имейл адрес <span class="text-rose-500">*</span></label>
+                    <div class="has-tooltip cursor-help text-slate-400 hover:text-indigo-600 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                        <span class="tooltip-box">
+                            <span class="flex items-center gap-1.5 text-indigo-400 font-bold mb-1 text-[11px] uppercase tracking-wider">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h10zm0 0V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m5 4v.01"/></svg>
+                                Защо е необходимо?
+                            </span>
+                            "Тук ще получиш официалния входящ номер на сигнала си, както и дигитален Token за проследяване. По този начин имаш пълна сигурност и контрол върху всеки етап от проверката."
+                        </span>
                     </div>
-
+                </div>
+                <input type="email" id="citizenEmail" required placeholder="yourname@example.com"
+                    class="field w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm">
+            </div>
+            
+            <!-- 3. Телефон за връзка -->
+            <div>
+                <div class="flex items-center gap-1.5 mb-1.5">
+                    <label class="block text-xs font-semibold text-slate-600">Телефон за връзка</label>
+                    <div class="has-tooltip cursor-help text-slate-400 hover:text-indigo-600 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                        <span class="tooltip-box">
+                            <span class="flex items-center gap-1.5 text-indigo-400 font-bold mb-1 text-[11px] uppercase tracking-wider">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Защо помага?
+                            </span>
+                            "Твоят номер е защитен и ще бъде използван само ако инспекторите на терен имат нужда от бързо уточнение (например за точния вход или блок). Това спестява време и гарантира, че сигналът няма да бъде затворен поради липса на детайли.Оставянето на телефон ускорява решаването на проблема с над 50%"
+                        </span>
+                    </div>
+                </div>
+                <input type="tel" id="citizenPhone" placeholder="напр. 0888123456"
+                    class="field w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm">
+            </div>
+        </div>
+    </div>
                     <div class="space-y-4">
                         <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.14em] flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4M12 17h.01"/></svg>
