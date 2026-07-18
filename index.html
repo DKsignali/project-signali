@@ -1415,12 +1415,12 @@ async function closeSignalByOwner(id) {
             }, 50);
 
             // ПЛАВНО СКРОЛВАНЕ: Изчакваме малко анимацията да приключи и скролваме до писмото
-            setTimeout(() => {
-                letterContainer.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-            }, 400);
+           setTimeout(() => {
+    letterContainer.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' // Промяна от 'center' на 'start'
+    });
+}, 800);
         }
 
         this.reset();
