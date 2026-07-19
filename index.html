@@ -1325,7 +1325,7 @@ async function closeSignalByOwner(id) {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            showNotification(`🎉 Сигнал №${id} беше затворен успешно от Вас като негов автор!`, 'success');
+            showNotification(`Сигнал №${id} беше затворен успешно от Вас като негов автор!`, 'success');
             
             // 1. Корекция: Извикваме правилната и дефинирана функция в твоя проект, за да светне пинът в зелено веднага
             if (typeof loadPublicSignals === 'function') {
