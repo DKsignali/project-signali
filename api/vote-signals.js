@@ -93,6 +93,24 @@ export default async function handler(req, res) {
     }
 
     // =========================================================================
+    // 🔒 НОВА СЪРВЪРНА ЗАЩИТА: ИЗВЛИЧАНЕ И ПРОВЕРКА НА IP АДРЕСА ПРЕДИ ВОТА
+    // =========================================================================
+    const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    // Пробваме да запишем IP адреса в защитната ни база данни
+    const { error: insertVoteError } = await supabase
+      .from('signal_votes')
+      .insert({ signal_id: id, user_ip: userIp, vote_type: voteType });
+
+    // Ако Supabase върне грешка за дублиран уникален ключ (вече има такова IP за този сигнал)
+    if (insertVoteError) {
+      if (insertVoteError.code === '23505') { // Код 23505 е уникално ограничение в PostgreSQL
+        return res.status(400).json({ success: false, error: 'Вече сте гласували за този сигнал.' });
+      }
+      throw insertVoteError;
+    }
+
+    // =========================================================================
     // СЕГАШНАТА ТИ КРАУДСОРСИНГ ЛОГИКА
     // =========================================================================
     const { data: signal, error: fetchError } = await supabase
