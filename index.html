@@ -407,6 +407,44 @@
             visibility: visible;
             opacity: 1;
         }
+    /* Елегантен бутон за геолокация върху картата */
+.leaflet-control-geolocation {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.leaflet-control-geolocation:hover {
+    background: #f8fafc;
+    transform: scale(1.05);
+    color: #4f46e5;
+}
+.leaflet-control-geolocation svg {
+    width: 18px;
+    height: 18px;
+    color: #475569;
+    transition: color 0.2s ease;
+}
+.leaflet-control-geolocation:hover svg {
+    color: #4f46e5;
+}
+/* Анимация при търсене на локация */
+.geolocation-loading svg {
+    animation: geoPulse 1.2s infinite ease-in-out;
+    color: #d97706 !important;
+}
+@keyframes geoPulse {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.6; }
+}
     </style>
 </head>
 <body class="font-sans antialiased text-slate-900 selection:bg-blue-500 selection:text-white">
@@ -932,14 +970,15 @@ const markerClusterGroup = L.markerClusterGroup({
 });
 map.addLayer(markerClusterGroup);
 
-        let userMarker = null;
+let userMarker = null;
 
-        function clearUserMarker() {
-            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
-            document.getElementById('latitude').value = '';
-            document.getElementById('longitude').value = '';
-            document.getElementById('locationBadge').classList.add('hidden');
-        }
+function clearUserMarker() {
+    if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+    document.getElementById('latitude').value = '';
+    document.getElementById('longitude').value = '';
+    document.getElementById('locationBadge').classList.add('hidden');
+}
+
 // 1. Дефиниране на новата икона с твоето роботче
 const aiUserIcon = L.icon({
     iconUrl: 'assets/pin-marker.png.png', // ТУК СЛОЖИ ПЪТЯ ДО ТВОЯ PNG ФАЙЛ
@@ -947,6 +986,108 @@ const aiUserIcon = L.icon({
     iconAnchor:   [23, 46],       // Сочи точно към най-долния остър връх на пина (тъй като е 48px висок)
     popupAnchor:  [0, -42]        // Откъде да изскача балончето с текст спрямо центъра на пина
 });
+
+// =========================================================================
+// >>> ДОБАВЕН БЛОК: СИГУРЕН КОНТРОЛ ЗА ГЕОЛОКАЦИЯ
+// =========================================================================
+const GeolocationControl = L.Control.extend({
+    options: { position: 'topleft' },
+
+    onAdd: function (map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-geolocation');
+        container.title = "Намери моята локация";
+        
+        container.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+            </svg>
+        `;
+
+        L.DomEvent.disableClickPropagation(container);
+
+        L.DomEvent.on(container, 'click', () => {
+            if (!navigator.geolocation) {
+                alert("Браузърът Ви не поддържа геолокация.");
+                return;
+            }
+
+            container.classList.add('geolocation-loading');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+
+                    if (lat < 41.0 || lat > 44.5 || lng < 22.0 || lng > 29.0) {
+                        alert(`Локацията е намерена, но е извън обхвата на платформата (Точност: ~${Math.round(accuracy)}м).`);
+                        container.classList.remove('geolocation-loading');
+                        return;
+                    }
+
+                    const targetLatLng = L.latLng(lat, lng);
+                    map.flyTo(targetLatLng, 17, { animate: true, duration: 1.5 });
+
+                    document.getElementById('latitude').value = lat;
+                    document.getElementById('longitude').value = lng;
+                    document.getElementById('locationBadge').classList.remove('hidden');
+
+                    const popupText = `
+                        <div class="text-center space-y-1 font-sans">
+                            <b>Вашата текуща локация</b><br>
+                            <span class="text-[10px] text-slate-400">(Точност: ±${Math.round(accuracy)} метра)</span><br>
+                            <button type="button" onclick="clearUserMarker()" class="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer">✕ Премахни маркер</button>
+                        </div>
+                    `;
+
+                    if (userMarker) {
+                        userMarker.setLatLng(targetLatLng).setPopupContent(popupText);
+                    } else {
+                        userMarker = L.marker(targetLatLng, {
+                            draggable: true,
+                            icon: aiUserIcon
+                        }).addTo(map).bindPopup(popupText);
+
+                        userMarker.on('moveend', function(ev) {
+                            const pos = ev.target.getLatLng();
+                            document.getElementById('latitude').value = pos.lat;
+                            document.getElementById('longitude').value = pos.lng;
+                        });
+                    }
+                    
+                    userMarker.openPopup();
+                    container.classList.remove('geolocation-loading');
+                },
+                (error) => {
+                    container.classList.remove('geolocation-loading');
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            alert("Моля, разрешете достъпа до локация в настройките на браузъра си.");
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            alert("Информацията за локацията е недостъпна.");
+                            break;
+                        case error.TIMEOUT:
+                            alert("Времето за заявка изтече.");
+                            break;
+                        default:
+                            alert("Възникна грешка при геолокацията.");
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        });
+
+        return container;
+    }
+});
+
+map.addControl(new GeolocationControl());
+// =========================================================================
+// <<< КРАЙ НА ДОБАВЕНИЯ БЛОК
+// =========================================================================
+
 map.on('click', function(e) {
     document.getElementById('latitude').value = e.latlng.lat;
     document.getElementById('longitude').value = e.latlng.lng;
@@ -962,10 +1103,9 @@ map.on('click', function(e) {
     if (userMarker) {
         userMarker.setLatLng(e.latlng);
     } else {
-        // Създаваме новия маркер с параметъра "icon: aiUserIcon"
         userMarker = L.marker(e.latlng, {
             draggable: true,
-            icon: aiUserIcon // <--- Използваме новото брандирано роботче!
+            icon: aiUserIcon
         }).addTo(map).bindPopup(popupText).openPopup();
         
         userMarker.on('moveend', function(ev) {
