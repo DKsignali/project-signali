@@ -1268,32 +1268,42 @@ map.on('click', function(e) {
         }
 
         async function voteSignal(id, voteType) {
-            if (localStorage.getItem(`voted_signal_${id}`)) {
-                alert('Вие вече сте гласували за този сигнал!');
-                return;
-            }
+    if (localStorage.getItem(`voted_signal_${id}`)) {
+        alert('Вие вече сте гласували за този сигнал!');
+        return;
+    }
 
-            try {
-                const response = await fetch('/api/vote-signals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, voteType: voteType })
-                });
-                const result = await response.json();
+    try {
+        const response = await fetch('/api/vote-signals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, voteType: voteType })
+        });
+        const result = await response.json();
 
-                if (response.ok && result.success) {
-                    localStorage.setItem(`voted_signal_${id}`, 'true');
-                    showNotification(`🗳️ ${result.message}`, 'success');
-                    await loadPublicSignals();
-                    map.closePopup();
-                } else {
-                    showNotification(`❌ Грешка при гласуване: ${result.error}`, 'error');
-                }
-            } catch (err) {
-                showNotification('❌ Срив в мрежата при изпращане на вота.', 'error');
+        if (response.ok && result.success) {
+            // Ниво 3 (Фронтенд): Записваме в localStorage, за да скрием бутоните веднага при успешен вот
+            localStorage.setItem(`voted_signal_${id}`, 'true');
+            showNotification(`🗳️ ${result.message}`, 'success');
+            await loadPublicSignals();
+            map.closePopup();
+        } else {
+            // 🔒 АКО БЕКЕНДЪТ ИЛИ БАЗАТА ДАННИ (Нива 1 и 2) УЛОВЯТ, ЧЕ IP-ТО ВЕЧЕ Е ГЛАСУВАЛО:
+            if (result.error && result.error.includes('Вече сте гласували')) {
+                // Насила синхронизираме localStorage, за да блокираме бутоните за този потребител
+                localStorage.setItem(`voted_signal_${id}`, 'true');
+                showNotification(`❌ ${result.error}`, 'error');
+                await loadPublicSignals();
+                map.closePopup();
+            } else {
+                // За всякакви други технически грешки
+                showNotification(`❌ Грешка при гласуване: ${result.error}`, 'error');
             }
         }
-
+    } catch (err) {
+        showNotification('❌ Срив в мрежата при изпращане на вота.', 'error');
+    }
+}
         // ДОБАВЕНО: Функция за директно и сигурно затваряне на сигнал от автора му (UX Подобрение №3)
 async function closeSignalByOwner(id) {
     const token = localStorage.getItem(`owner_token_signal_${id}`);
