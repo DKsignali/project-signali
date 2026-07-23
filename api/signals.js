@@ -178,30 +178,47 @@ if (!finalLat || !finalLng) {
         .replace(/\s+/g, " ")                         // Премахва двойни/множествени интервали
         .trim();
 
-      console.log(`[БЕКЕНД ДИАГНОСТИКА] Търсене в LocationIQ за: "${cleanSearchAddress}, Пловдив"`);
+      console.log(`[БЕКЕНД ДИАГНОСТИКА] Опит 1 (Улица): Търсене в LocationIQ за street="${cleanSearchAddress}", city="Пловдив"`);
 
-      const forwardResponse = await fetch(
-        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&limit=1`
+      // ОПИТ 1: Структурирано търсене за конкретна улица (Защита за малки улици като ул. Младост)
+      let forwardResponse = await fetch(
+        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&street=${encodeURIComponent(cleanSearchAddress)}&city=${encodeURIComponent('Пловдив')}&country=${encodeURIComponent('България')}&format=json&accept-language=bg&limit=1`
       );
-      
+
+      let forwardData = [];
       if (forwardResponse.ok) {
-        const forwardData = await forwardResponse.json();
-        if (forwardData && forwardData.length > 0) {
-          finalLat = parseFloat(forwardData[0].lat);
-          finalLng = parseFloat(forwardData[0].lon);
-          console.log(`[УСПЕХ] Намерени координати за центъра на улицата [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
-        } else {
-          console.log(`[OSM ВНИМАНИЕ] Няма намерени съвпадения за: "${cleanSearchAddress}"`);
-        }
-      } else {
-        console.error(`[LocationIQ ГРЕШКА] Сървърът върна статус: ${forwardResponse.status}`);
+        forwardData = await forwardResponse.json();
       }
+
+      // ОПИТ 2 (FALLBACK): Търсене като общ обект/парк/река, ако първият опит за улица не върне резултат
+      if (!forwardData || forwardData.length === 0) {
+        console.log(`[БЕКЕНД ДИАГНОСТИКА] Опит 2 (Общ обект/Парк): Търсене в LocationIQ за: "${cleanSearchAddress}, Пловдив"`);
+        
+        forwardResponse = await fetch(
+          `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&limit=1`
+        );
+
+        if (forwardResponse.ok) {
+          forwardData = await forwardResponse.json();
+        } else {
+          console.error(`[LocationIQ ГРЕШКА] Сървърът върна статус: ${forwardResponse.status}`);
+        }
+      }
+
+      // Обработка на намерените координати от успешен опит
+      if (forwardData && forwardData.length > 0) {
+        finalLat = parseFloat(forwardData[0].lat);
+        finalLng = parseFloat(forwardData[0].lon);
+        console.log(`[УСПЕХ] Намерени координати за центъра на улицата [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
+      } else {
+        console.log(`[OSM ВНИМАНИЕ] Няма намерени съвпадения за: "${cleanSearchAddress}"`);
+      }
+
     } catch (forwardError) {
       console.error("Грешка при последващо текстово геокодиране:", forwardError);
     }
   }
 }
-
     // =========================================================================
     // ДИРЕКТЕН И СИГУРЕН ЗАПИС В SUPABASE ЧРЕЗ HTTP REST API
     // =========================================================================
