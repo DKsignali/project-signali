@@ -101,9 +101,11 @@ export default async function handler(request, response) {
 
 СТЪПКА 2 (Администрация): Анализираш коригирания текст и извлечи:
 - Точен адрес/локация в град Пловдив.
-* ВНИМАНИЕ: С най-висок приоритет анализирай текста на гражданина ("${rawDescription}"). Ако вътре има споменат конкретен адрес, улица и номер (например "ул. Иван Стефанов Гешев 30"), използвай НЕГО като краен адрес!
-  * Ако в текста няма конкретен адрес, тогава използвай адреса от GPS локатора: "${geoAddress || 'Няма подаден GPS адрес'}".
-  * Сглоби адреса красиво, ясно, задължително включвайки номера на улицата или сградата.
+  * ВНИМАНИЕ: С най-висок приоритет анализирай текста на гражданина ("${rawDescription}"). Ако вътре има споменат конкретен адрес или улица, използвай НЕГО като краен адрес!
+  * Ако в текста има посочен номер на сграда/улица (например "ул. Иван Стефанов Гешев 30"), включи го в адреса. 
+  * Ако е спомената САМО улица без номер (например "улица Рая"), върни САМО името на улицата (например "ул. Рая")! КАТЕГОРИЧНО СЕ ЗАБРАНЯВА да добавяш измислени номера (като "№ 0") или пояснения от рода на "(без номер)" и "неуточнен"!
+  * Ако в текста няма никакъв конкретен адрес или улица, тогава използвай адреса от GPS локатора: "${geoAddress || 'Няма подаден GPS адрес'}".
+  * Сглоби адреса красиво, ясно и прецизно.
 - Ниво на спешност (priority) – избери точно едно от: 'Low', 'Medium', 'High'.
 - Отговорна институция (assigned_institution) – избери най-подходящата от следните: 'ОП Чистота', 'ОП Градини и паркове', 'ОП Организация и контрол на транспорта', 'ОП Паркиране и репатриране', 'Пловдивски общински инспекторат (ПОИ)', 'Район Централен', 'Район Южен', 'Район Северен', 'Район Западен', 'Район Източен', 'Район Тракия', 'Община Пловдив'.
 
@@ -159,45 +161,46 @@ export default async function handler(request, response) {
     // =========================================================================
 
     const structuredData = JSON.parse(responseText);
-    // =========================================================================
-    // БЛОК: НАМИРАНЕ НА КООРДИНАТИ ЧРЕЗ ЧИСТИЯ АДРЕС, ИЗВЛЕЧЕН ОТ ИИ (ПОДСИГУРЕН)
-    // =========================================================================
-    if (!finalLat || !finalLng) {
-      // Застраховка: Взимаме адреса, без значение дали ИИ е върнал "location" или "Location"
-      let aiExtractAddress = structuredData.location || structuredData.Location || geoAddress;
+// =========================================================================
+// БЛОК: НАМИРАНЕ НА КООРДИНАТИ ЧРЕЗ ЧИСТИЯ АДРЕС, ИЗВЛЕЧЕН ОТ ИИ (ПОДСИГУРЕН)
+// =========================================================================
+if (!finalLat || !finalLng) {
+  let aiExtractAddress = structuredData.location || structuredData.Location || geoAddress;
+  
+  if (aiExtractAddress && aiExtractAddress !== "Неуточнена локация в град Пловдив") {
+    try {
+      // ПОДОБРЕНО И ДВОЙНО ПОДСИГУРЕНО ПРЕЧИСТВАНЕ ЗА OPENSTREETMAP:
+      let cleanSearchAddress = aiExtractAddress
+        .replace(/\(.*\)/g, "")                       // Премахва съдържанието в скоби -> (напр. кв. Смирненски)
+        .replace(/без номер|неуточнен/gi, "")        // Премахва думи за липса на номер
+        .replace(/(ул\.|бул\.|улица|булевард|№)/gi, "") // Премахва префиксите
+        .replace(/["'„“«»]/g, "")                     // Премахва абсолютно всички видове кавички
+        .replace(/\s+/g, " ")                         // Премахва двойни/множествени интервали
+        .trim();
+
+      console.log(`[БЕКЕНД ДИАГНОСТИКА] Търсене в LocationIQ за: "${cleanSearchAddress}, Пловдив"`);
+
+      const forwardResponse = await fetch(
+        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&limit=1`
+      );
       
-      if (aiExtractAddress && aiExtractAddress !== "Неуточнена локация в град Пловдив") {
-        try {
-          // СУПЕР СТРИКТНО ПОЧИСТВАНЕ ЗА OPENSTREETMAP:
-          // Премахваме "ул.", "бул.", "улица", "булевард", "„", "“", кавички и "№", защото OSM се бърка от тях!
-          let cleanSearchAddress = aiExtractAddress
-            .replace(/(ул\.|бул\.|улица|булевард|„|“|"|'|№)/gi, "")
-            .replace(/\s+/g, " ") // Изчистваме двойни интервали
-            .trim();
-
-          console.log(`[БЕКЕНД ДИАГНОСТИКА] Изпращаме към LocationIQ чист адрес: "${cleanSearchAddress}, Пловдив"`);
-
-          const forwardResponse = await fetch(
-            `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&limit=1`
-          );
-          
-          if (forwardResponse.ok) {
-            const forwardData = await forwardResponse.json();
-            if (forwardData && forwardData.length > 0) {
-              finalLat = parseFloat(forwardData[0].lat);
-              finalLng = parseFloat(forwardData[0].lon);
-              console.log(`[УСПЕХ] Намерени координати чрез ИИ адрес [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
-            } else {
-              console.log(`[OSM ВНИМАНИЕ] Няма намерени съвпадения в картата за пречистен низ: "${cleanSearchAddress}"`);
-            }
-          } else {
-            console.error(`[LocationIQ ГРЕШКА] Сървърът върна статус: ${forwardResponse.status}`);
-          }
-        } catch (forwardError) {
-          console.error("Грешка при последващо текстово геокодиране:", forwardError);
+      if (forwardResponse.ok) {
+        const forwardData = await forwardResponse.json();
+        if (forwardData && forwardData.length > 0) {
+          finalLat = parseFloat(forwardData[0].lat);
+          finalLng = parseFloat(forwardData[0].lon);
+          console.log(`[УСПЕХ] Намерени координати за центъра на улицата [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
+        } else {
+          console.log(`[OSM ВНИМАНИЕ] Няма намерени съвпадения за: "${cleanSearchAddress}"`);
         }
+      } else {
+        console.error(`[LocationIQ ГРЕШКА] Сървърът върна статус: ${forwardResponse.status}`);
       }
+    } catch (forwardError) {
+      console.error("Грешка при последващо текстово геокодиране:", forwardError);
     }
+  }
+}
 
     // =========================================================================
     // ДИРЕКТЕН И СИГУРЕН ЗАПИС В SUPABASE ЧРЕЗ HTTP REST API
