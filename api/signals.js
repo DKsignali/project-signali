@@ -1,8 +1,7 @@
 // File: /api/signals.js
-import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend'; // Импортираме новата библиотека за имейли
-import crypto from 'crypto'; // ДОБАВЕНО: Модул за сигурно генериране на токени
+import crypto from 'crypto'; // Модул за сигурно генериране на токени
 
 // Инициализираме AI извън handler-а
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -274,7 +273,7 @@ if (!finalLat || !finalLng) {
       try {
         const signalId = insertedSignal ? insertedSignal.id : "Няма ID";
         // Изграждане на Magic Link за управление през официалния домейн
-        const magicLink = `[https://signaliplovdiv.org/?manage=$](https://signaliplovdiv.org/?manage=$){signalId}&token=${ownerToken}`;
+        const magicLink = `https://signaliplovdiv.org/?manage=${signalId}&token=${ownerToken}`;
 
         // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND
         let emailAttachments = [];
