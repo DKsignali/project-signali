@@ -40,10 +40,10 @@ export default async function handler(request, response) {
     }
 
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-      throw new Error("Липсват конфигурационни ключове for Supabase във Vercel.");
+      throw new Error("Липсват конфигурационни ключове за Supabase във Vercel.");
     }
 
-    // ДОБАВЕНО: Генериране на уникален токен за автора
+    // Генериране на уникален токен за автора
     const ownerToken = crypto.randomUUID();
 
     // =========================================================================
@@ -128,7 +128,7 @@ export default async function handler(request, response) {
 }`;
 
     // =========================================================================
-    // ОБНОВЕН БЛОК: ИЗВЛИЧАНЕ НА ДАННИ ОТ GEMINI СЪС ЗАЩИТА ОТ ГРЕШКИ 503
+    //ИЗВЛИЧАНЕ НА ДАННИ ОТ GEMINI СЪС ЗАЩИТА ОТ ГРЕШКИ 503
     // =========================================================================
     let responseText = "";
     const maxRetries = 3; // Брой опити, които системата ще направи
@@ -243,7 +243,7 @@ if (!finalLat || !finalLng) {
         // НОВИТЕ КОЛОНИ ЗА ГЕО-ЛОКАЦИЯ (АВТОМАТИЧНИ ИЛИ ОТ КАРТАТА):
         latitude: finalLat || null,
         longitude: finalLng || null,
-        owner_token: ownerToken // ДОБАВЕНО: Записваме токена в Supabase payload-а
+        owner_token: ownerToken // Записваме токена в Supabase payload-а
       };
 
       console.log("Опит за директна HTTP заявка към:", `${supabaseUrl}/rest/v1/signals`);
@@ -273,18 +273,18 @@ if (!finalLat || !finalLng) {
       // =========================================================================
       try {
         const signalId = insertedSignal ? insertedSignal.id : "Няма ID";
-        // ДОБАВЕНО: Изграждане на Magic Link за управление
-        const magicLink = `https://signaliplovdiv.org/?manage=${signalId}&token=${ownerToken}`;
+        // Изграждане на Magic Link за управление през официалния домейн
+        const magicLink = `[https://signaliplovdiv.org/?manage=$](https://signaliplovdiv.org/?manage=$){signalId}&token=${ownerToken}`;
 
-        // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND (АКТИВИРАНО)
+        // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND
         let emailAttachments = [];
         if (imageUrl) {
           if (imageUrl.startsWith('data:')) {
             const parts = imageUrl.split(';base64,');
             if (parts.length === 2) {
-              const contentType = parts[0].split(':')[1]; // Взема "image/jpeg", "image/png" и т.н.
-              const base64Content = parts[1].replace(/[\r\n\s]/g, '');  // Взема чистия base64 низ без заглавната част
-              const extension = contentType.split('/')[1] || 'jpg'; // Динамично разширение
+              const contentType = parts[0].split(':')[1];
+              const base64Content = parts[1].replace(/[\r\n\s]/g, '');
+              const extension = contentType.split('/')[1] || 'jpg';
 
               emailAttachments.push({
                 filename: `photo_evidence_${signalId}.${extension}`,
@@ -396,7 +396,7 @@ if (!finalLat || !finalLng) {
       }
       // =========================================================================
 
-      // ДОБАВЕНО: Предаваме owner_token обратно в JSON обекта, за да може първото устройство да го запази веднага
+      // Предаваме owner_token обратно в JSON обекта, за да може първото устройство да го запази веднага
       return response.status(200).json({ 
         success: true, 
         data: {
