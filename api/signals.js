@@ -303,7 +303,7 @@ if (!finalLat || !finalLng) {
         await resend.emails.send({
           from: 'Сигнали Пловдив <no-reply@signaliplovdiv.org>', // Смени с официален мейл след покупка на домейн
           to: [citizenEmail],
-          subject: `🚨 Сигнал №${signalId} е успешно регистриран - Сигнали Пловдив`,
+          subject: `Сигнал №${signalId} е успешно регистриран - Сигнали Пловдив`,
           attachments: emailAttachments, // Прикачваме снимката като реален файл
           html: `
             <div style="font-family: sans-serif; max-width: 600px; color: #334155; line-height: 1.6;">
@@ -312,7 +312,7 @@ if (!finalLat || !finalLng) {
               <p>Вашият сигнал беше успешно заведен под <strong>№${signalId}</strong> в градската система и беше изпратен към съответната институция по служебен път.</p>
               <div style="text-align: center; margin: 25px 0;">
                 <a href="${magicLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; font-size: 14px; border-radius: 6px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                  ⚡ Управление и Затваряне на Сигнала
+                  Управление и Затваряне на Сигнала
                 </a>
                 <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">Използвайте този линк, ако проблемът бъде отстранен, за да го затворите веднага без чакане от всяко устройство.</p>
               </div>
@@ -323,7 +323,7 @@ if (!finalLat || !finalLng) {
               </div>
               ${imageUrl ? `
                 <div style="margin-top: 15px; margin-bottom: 15px; padding: 10px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;">
-                  <p style="margin: 0; font-size: 13px; color: #1e293b;">📎 <strong>Към имейла е прикачено изпратеното от Вас фотодоказателство.</strong></p>
+                  <p style="margin: 0; font-size: 13px; color: #1e293b;"><strong>Към имейла е прикачено изпратеното от Вас фотодоказателство.</strong></p>
                 </div>
               ` : ''}
 
@@ -367,10 +367,10 @@ if (!finalLat || !finalLng) {
               
               <div style="background-color: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
                 <strong style="color: #0f172a;">Официални данни за контакт с подателя:</strong><br>
-                👤 Три имена: ${citizenName}<br>
-                ✉️ Имейл адрес: <a href="mailto:${citizenEmail}">${citizenEmail}</a><br>
-                📞 Телефон за връзка: ${citizenPhone || 'Не е предоставен'}<br>
-                📍 Локация по ИИ: ${structuredData.location}
+                <strong>• Три имена:</strong> ${citizenName}<br>
+                <strong>• Имейл адрес:</strong> <a href="mailto:${citizenEmail}">${citizenEmail}</a><br>
+                <strong>• Телефон за връзка:</strong> ${citizenPhone || 'Не е предоставен'}<br>
+                <strong>• Локация по ИИ:</strong> ${structuredData.location}
               </div>
 
               <h3 style="color: #0f172a; margin-top: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px;">ПРАВЕН ТЕКСТ НА ЖАЛБАТА:</h3>
@@ -378,7 +378,7 @@ if (!finalLat || !finalLng) {
               
               ${imageUrl ? `
                 <div style="margin-top: 15px; margin-bottom: 15px; padding: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
-                  <p style="margin: 0; font-weight: bold; color: #166534;">📎 Към писмото е прикачено фотодоказателство от мястото на събитието.</p>
+                  <p style="margin: 0; font-weight: bold; color: #166534;"> Към писмото е прикачено фотодоказателство от мястото на събитието.</p>
                 </div>
               ` : '<p style="color: #64748b; font-style: italic;">Не е прикачена снимка.</p>'}
              
