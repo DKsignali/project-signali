@@ -274,7 +274,7 @@ if (!finalLat || !finalLng) {
       try {
         const signalId = insertedSignal ? insertedSignal.id : "Няма ID";
         // ДОБАВЕНО: Изграждане на Magic Link за управление
-        const magicLink = `https://project-signali.vercel.app/?manage=${signalId}&token=${ownerToken}`;
+        const magicLink = `https://signaliplovdiv.org/?manage=${signalId}&token=${ownerToken}`;
 
         // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND (АКТИВИРАНО)
         let emailAttachments = [];
@@ -283,7 +283,7 @@ if (!finalLat || !finalLng) {
             const parts = imageUrl.split(';base64,');
             if (parts.length === 2) {
               const contentType = parts[0].split(':')[1]; // Взема "image/jpeg", "image/png" и т.н.
-              const base64Content = parts[1];              // Взема чистия base64 низ без заглавната част
+              const base64Content = parts[1].replace(/[\r\n\s]/g, '');  // Взема чистия base64 низ без заглавната част
               const extension = contentType.split('/')[1] || 'jpg'; // Динамично разширение
 
               emailAttachments.push({
@@ -347,6 +347,10 @@ if (!finalLat || !finalLng) {
         const categoryInfo = structuredData.category || (structuredData.corrected_text ? structuredData.corrected_text.substring(0, 30) + '...' : 'Градска неизправност');
         const locationInfo = structuredData.location || geoAddress;
 
+        // КОРЕКЦИЯ: Изчистване на нови редове в заглавието за предотвратяване на SMTP грешки
+        const cleanCategory = String(categoryInfo).replace(/[\r\n]/g, ' ');
+        const cleanLocation = String(locationInfo).replace(/[\r\n]/g, ' ');
+
         await resend.emails.send({
           from: `${citizenName} (през Сигнали Пловдив) <no-reply@signaliplovdiv.org>`, 
           to: [targetEmail],
@@ -356,7 +360,7 @@ if (!finalLat || !finalLng) {
           attachments: emailAttachments, // Прикачваме снимката като реален файл
           
           // ЗАГЛАВИЕ ПО ФОРМУЛАТА НА АПК ЗА ДЪРЖАВНАТА АДМИНИСТРАЦИЯ
-          subject: `[СИГНАЛ по чл. 107 от АПК] Относно: ${categoryInfo} – ${locationInfo} (Подател: ${citizenName})`,
+          subject: `[СИГНАЛ по чл. 107 от АПК] Относно: ${cleanCategory} – ${cleanLocation} (Подател: ${citizenName})`,
           html: `
             <div style="font-family: sans-serif; max-width: 650px; color: #1e293b; line-height: 1.6;">
               <p><strong>УВАЖАЕМИ ДАМИ И ГОСПОДА,</strong></p>
