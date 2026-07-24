@@ -302,7 +302,7 @@ if (!finalLat || !finalLng) {
  
         // 1. ИМЕЙЛ ДО ГРАЖДАНИНА (ПОТВЪРЖДЕНИЕ)
         await resend.emails.send({
-          from: 'Сигнали Пловдив <onboarding@resend.dev>', // Смени с официален мейл след покупка на домейн
+          from: 'Сигнали Пловдив <no-reply@signaliplovdiv.org>', // Смени с официален мейл след покупка на домейн
           to: [citizenEmail],
           subject: `🚨 Сигнал №${signalId} е успешно регистриран - Сигнали Пловдив`,
           attachments: emailAttachments, // Прикачваме снимката като реален файл
@@ -348,7 +348,7 @@ if (!finalLat || !finalLng) {
         const locationInfo = structuredData.location || geoAddress;
 
         await resend.emails.send({
-          from: `${citizenName} (през Сигнали Пловдив) <onboarding@resend.dev>`, 
+          from: `${citizenName} (през Сигнали Пловдив) <no-reply@signaliplovdiv.org>`, 
           to: [targetEmail],
           
           // КЛЮЧОВИЯТ МОМЕНТ: Ако общината натисне "Отговор/Reply", писмото отива при гражданина!
