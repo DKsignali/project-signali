@@ -942,9 +942,7 @@ const map = L.map('map', {
     fullscreenControl: true,
     maxBounds: visualMapBounds,      // Ограничава панорамирането до Пловдив
     maxBoundsViscosity: 0.8,       // Не позволява "ластично дърпане" извън границите
-    minZoom: 12,        // Не позволява отдалечаване извън рамките на града
-    autoPan: true,
-    autoPanPadding: L.point(25, 25)
+    minZoom: 12        // Не позволява отдалечаване извън рамките на града
 }).setView([42.14492, 24.75032], 13);
     
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
