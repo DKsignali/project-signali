@@ -1066,24 +1066,22 @@ const GeolocationControl = L.Control.extend({
                     `;
 
                     if (userMarker) {
-                        userMarker.setLatLng(targetLatLng).setPopupContent(popupText);
-                    } else {
-                        userMarker = L.marker(targetLatLng, {
-                            draggable: true,
-                            icon: aiUserIcon
-                        }).addTo(map).bindPopup(popupText), {
-                            autoPanPadding: [25, 25], 
-                            keepInView: true 
-                       });
+    userMarker.setLatLng(targetLatLng).setPopupContent(popupText);
+} else {
+    userMarker = L.marker(targetLatLng, {
+        draggable: true,
+        icon: aiUserIcon
+    }).addTo(map).bindPopup(popupText, {
+        autoPanPadding: [25, 25],
+        keepInView: true
+    });
 
-                        userMarker.on('moveend', function(ev) {
-                            const pos = ev.target.getLatLng();
-                            // Leaflet maxBounds блокира влаченето извън картата, така че тук сме в безопасност
-                            document.getElementById('latitude').value = pos.lat;
-                            document.getElementById('longitude').value = pos.lng;
-                        });
-                    }
-                    
+    userMarker.on('moveend', function(ev) {
+        const pos = ev.target.getLatLng();
+        document.getElementById('latitude').value = pos.lat;
+        document.getElementById('longitude').value = pos.lng;
+    });
+}                    
                     userMarker.openPopup();
                     container.classList.remove('geolocation-loading');
                 },
