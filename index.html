@@ -926,15 +926,14 @@ const plovdivBounds = L.latLngBounds(
     [42.083, 24.643], // South-West 
     [42.186, 24.823]  // North-East
 );
-const visualMapBounds = strictPlovdivBounds.pad(0.2);
-    
+
 // Карта и Leaflet Логика
 const map = L.map('map', { 
     scrollWheelZoom: true,
     fullscreenControl: true,
-    maxBounds: visualMapBounds,    // ТУК използваме разширените визуални граници
-    maxBoundsViscosity: 0.8,       // Леко намаляваме твърдостта на стената (от 1.0 на 0.8) за по-мазно усещане
-    minZoom: 12                    
+    maxBounds: plovdivBounds,      // Ограничава панорамирането до Пловдив
+    maxBoundsViscosity: 1.0,       // Не позволява "ластично дърпане" извън границите
+    minZoom: 12                    // Не позволява отдалечаване извън рамките на града
 }).setView([42.14492, 24.75032], 13);
     
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -1037,7 +1036,7 @@ const GeolocationControl = L.Control.extend({
                     const targetLatLng = L.latLng(lat, lng);
 
                     // Променена логика: Проверяваме дали координатите са строго в Пловдив
-                    if (!strictPlovdivBounds.contains(targetLatLng)) {
+                    if (!plovdivBounds.contains(targetLatLng)) {
                         alert(`Локацията е намерена, но е извън обхвата на град Пловдив (Точност: ~${Math.round(accuracy)}м). Системата приема сигнали само за територията на града.`);
                         container.classList.remove('geolocation-loading');
                         return;
@@ -1107,7 +1106,7 @@ map.addControl(new GeolocationControl());
 
 map.on('click', function(e) {
     // Втора линия на защита: Блокира поставянето на маркер извън границите
-    if (!strictPlovdivBounds.contains(e.latlng)) {
+    if (!plovdivBounds.contains(e.latlng)) {
         alert('Моля, маркирайте локация само в рамките на град Пловдив.');
         return;
     }
