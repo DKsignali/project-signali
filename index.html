@@ -83,7 +83,14 @@
             box-shadow: 0 24px 50px -18px rgba(2, 6, 23, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.05);
             background: #ffffff;
         }
-        .leaflet-popup-content { margin: 10px 12px; line-height: 1.4; }
+        .leaflet-popup-content {
+           margin: 12px 14px !important;
+           line-height: 1.4;
+           max-width: 280px !important; /* Гарантира, че няма да излезе от мобилен екран */
+           max-height: 320px;            /* При по-дълъг текст добавя скролbar, без да раздува картата */
+           overflow-y: auto;            /* Автоматичен скрол при нужда */
+           box-sizing: border-box;
+       }
         .leaflet-popup-tip {
             box-shadow: 0 6px 12px -6px rgba(2, 6, 23, 0.25);
             border-radius: 2px;
@@ -935,7 +942,9 @@ const map = L.map('map', {
     fullscreenControl: true,
     maxBounds: visualMapBounds,      // Ограничава панорамирането до Пловдив
     maxBoundsViscosity: 0.8,       // Не позволява "ластично дърпане" извън границите
-    minZoom: 12                    // Не позволява отдалечаване извън рамките на града
+    minZoom: 12,        // Не позволява отдалечаване извън рамките на града
+    autoPan: true,
+    autoPanPadding: L.point(25, 25)
 }).setView([42.14492, 24.75032], 13);
     
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -1000,7 +1009,7 @@ const aiUserIcon = L.icon({
     iconUrl: 'assets/pin-marker.png.png', // ТУК СЛОЖИ ПЪТЯ ДО ТВОЯ PNG ФАЙЛ
     iconSize:     [46, 46],       // Оптимален размер на екрана [ширина, височина]
     iconAnchor:   [23, 46],       // Сочи точно към най-долния остър връх на пина (тъй като е 48px висок)
-    popupAnchor:  [0, -42]        // Откъде да изскача балончето с текст спрямо центъра на пина
+    popupAnchor:  [0, -46]        // Откъде да изскача балончето с текст спрямо центъра на пина
 });
 
 // =========================================================================
@@ -1064,7 +1073,10 @@ const GeolocationControl = L.Control.extend({
                         userMarker = L.marker(targetLatLng, {
                             draggable: true,
                             icon: aiUserIcon
-                        }).addTo(map).bindPopup(popupText);
+                        }).addTo(map).bindPopup(popupText), {
+                            autoPanPadding: [25, 25], 
+                            keepInView: true 
+                       });
 
                         userMarker.on('moveend', function(ev) {
                             const pos = ev.target.getLatLng();
@@ -1130,14 +1142,17 @@ map.on('click', function(e) {
         userMarker = L.marker(e.latlng, {
             draggable: true,
             icon: aiUserIcon
-        }).addTo(map).bindPopup(popupText).openPopup();
-        
-        userMarker.on('moveend', function(ev) {
-            const pos = ev.target.getLatLng();
-            document.getElementById('latitude').value = pos.lat;
-            document.getElementById('longitude').value = pos.lng;
-        });
-    }
+}).addTo(map).bindPopup(popupText, { 
+        autoPanPadding: [25, 25], 
+        keepInView: true 
+    }).openPopup();
+    
+    userMarker.on('moveend', function(ev) {
+        const pos = ev.target.getLatLng();
+        document.getElementById('latitude').value = pos.lat;
+        document.getElementById('longitude').value = pos.lng;
+    });
+}
 });
         // =========================================================================
         // ИНТЕГРИРАНА DRAG & DROP ПОДСИСТЕМА И ЛОКАЛНА КОМПРЕСИЯ ЗА СНИМКИ
