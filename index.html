@@ -921,10 +921,19 @@
             }
         });
 
+// Дефинираме географските граници на Пловдив (Bounding Box)
+const plovdivBounds = L.latLngBounds(
+    [42.083, 24.643], // South-West 
+    [42.186, 24.823]  // North-East
+);
+
 // Карта и Leaflet Логика
 const map = L.map('map', { 
     scrollWheelZoom: true,
-    fullscreenControl: true
+    fullscreenControl: true,
+    maxBounds: plovdivBounds,      // Ограничава панорамирането до Пловдив
+    maxBoundsViscosity: 1.0,       // Не позволява "ластично дърпане" извън границите
+    minZoom: 12                    // Не позволява отдалечаване извън рамките на града
 }).setView([42.14492, 24.75032], 13);
     
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -1024,14 +1033,15 @@ const GeolocationControl = L.Control.extend({
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     const accuracy = position.coords.accuracy;
+                    const targetLatLng = L.latLng(lat, lng);
 
-                    if (lat < 41.0 || lat > 44.5 || lng < 22.0 || lng > 29.0) {
-                        alert(`Локацията е намерена, но е извън обхвата на платформата (Точност: ~${Math.round(accuracy)}м).`);
+                    // Променена логика: Проверяваме дали координатите са строго в Пловдив
+                    if (!plovdivBounds.contains(targetLatLng)) {
+                        alert(`Локацията е намерена, но е извън обхвата на град Пловдив (Точност: ~${Math.round(accuracy)}м). Системата приема сигнали само за територията на града.`);
                         container.classList.remove('geolocation-loading');
                         return;
                     }
 
-                    const targetLatLng = L.latLng(lat, lng);
                     map.flyTo(targetLatLng, 17, { animate: true, duration: 1.5 });
 
                     document.getElementById('latitude').value = lat;
@@ -1056,6 +1066,7 @@ const GeolocationControl = L.Control.extend({
 
                         userMarker.on('moveend', function(ev) {
                             const pos = ev.target.getLatLng();
+                            // Leaflet maxBounds блокира влаченето извън картата, така че тук сме в безопасност
                             document.getElementById('latitude').value = pos.lat;
                             document.getElementById('longitude').value = pos.lng;
                         });
@@ -1094,6 +1105,12 @@ map.addControl(new GeolocationControl());
 // =========================================================================
 
 map.on('click', function(e) {
+    // Втора линия на защита: Блокира поставянето на маркер извън границите
+    if (!plovdivBounds.contains(e.latlng)) {
+        alert('Моля, маркирайте локация само в рамките на град Пловдив.');
+        return;
+    }
+
     document.getElementById('latitude').value = e.latlng.lat;
     document.getElementById('longitude').value = e.latlng.lng;
     document.getElementById('locationBadge').classList.remove('hidden');
