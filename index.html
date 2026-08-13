@@ -31,7 +31,11 @@
                 radial-gradient(1000px 500px at 100% 0%, rgba(13,148,136,0.06), transparent 55%);
             background-attachment: fixed;
         }
-        #map { z-index: 10; }
+        #map {
+    height: 520px;
+    z-index: 10;
+    position: relative; /* Гарантира правилното действие на z-index спрямо останалите слоеве */
+}
 
         /* Premium bento card interactions */
         .bento {
@@ -1044,7 +1048,6 @@ const GeolocationControl = L.Control.extend({
                     const accuracy = position.coords.accuracy;
                     const targetLatLng = L.latLng(lat, lng);
 
-                    // Променена логика: Проверяваме дали координатите са строго в Пловдив
                     if (!strictPlovdivBounds.contains(targetLatLng)) {
                         alert(`Локацията е намерена, но е извън обхвата на град Пловдив (Точност: ~${Math.round(accuracy)}м). Системата приема сигнали само за територията на града.`);
                         container.classList.remove('geolocation-loading');
@@ -1066,22 +1069,23 @@ const GeolocationControl = L.Control.extend({
                     `;
 
                     if (userMarker) {
-    userMarker.setLatLng(targetLatLng).setPopupContent(popupText);
-} else {
-    userMarker = L.marker(targetLatLng, {
-        draggable: true,
-        icon: aiUserIcon
-    }).addTo(map).bindPopup(popupText, {
-        autoPanPadding: [25, 25],
-        keepInView: true
-    });
+                        userMarker.setLatLng(targetLatLng).setPopupContent(popupText);
+                    } else {
+                        userMarker = L.marker(targetLatLng, {
+                            draggable: true,
+                            icon: aiUserIcon
+                        }).addTo(map).bindPopup(popupText, {
+                            autoPanPaddingTopLeft: L.point(20, 100),    /* 100px отгоре */
+                            autoPanPaddingBottomRight: L.point(20, 20),
+                            keepInView: true
+                        });
 
-    userMarker.on('moveend', function(ev) {
-        const pos = ev.target.getLatLng();
-        document.getElementById('latitude').value = pos.lat;
-        document.getElementById('longitude').value = pos.lng;
-    });
-}                    
+                        userMarker.on('moveend', function(ev) {
+                            const pos = ev.target.getLatLng();
+                            document.getElementById('latitude').value = pos.lat;
+                            document.getElementById('longitude').value = pos.lng;
+                        });
+                    }                    
                     userMarker.openPopup();
                     container.classList.remove('geolocation-loading');
                 },
@@ -1110,12 +1114,8 @@ const GeolocationControl = L.Control.extend({
 });
 
 map.addControl(new GeolocationControl());
-// =========================================================================
-// <<< КРАЙ НА ДОБАВЕНИЯ БЛОК
-// =========================================================================
 
 map.on('click', function(e) {
-    // Втора линия на защита: Блокира поставянето на маркер извън границите
     if (!strictPlovdivBounds.contains(e.latlng)) {
         alert('Моля, маркирайте локация само в рамките на град Пловдив.');
         return;
@@ -1138,17 +1138,18 @@ map.on('click', function(e) {
         userMarker = L.marker(e.latlng, {
             draggable: true,
             icon: aiUserIcon
-}).addTo(map).bindPopup(popupText, { 
-        autoPanPadding: [25, 25], 
-        keepInView: true 
-    }).openPopup();
-    
-    userMarker.on('moveend', function(ev) {
-        const pos = ev.target.getLatLng();
-        document.getElementById('latitude').value = pos.lat;
-        document.getElementById('longitude').value = pos.lng;
-    });
-}
+        }).addTo(map).bindPopup(popupText, { 
+            autoPanPaddingTopLeft: L.point(20, 100),    /* 100px отгоре */
+            autoPanPaddingBottomRight: L.point(20, 20),
+            keepInView: true 
+        }).openPopup();
+        
+        userMarker.on('moveend', function(ev) {
+            const pos = ev.target.getLatLng();
+            document.getElementById('latitude').value = pos.lat;
+            document.getElementById('longitude').value = pos.lng;
+        });
+    }
 });
         // =========================================================================
         // ИНТЕГРИРАНА DRAG & DROP ПОДСИСТЕМА И ЛОКАЛНА КОМПРЕСИЯ ЗА СНИМКИ
