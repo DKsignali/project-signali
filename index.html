@@ -725,11 +725,12 @@
                         
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Какво забелязахте? <span class="text-rose-500">*</span></label>
-                            <textarea id="rawDescription" required rows="4" 
+                            <textarea id="rawDescription" required rows="4"
                                 placeholder="Опишете проблема максимално подробно (напр. Опасна дълбока дупка на пътното платно на бул. Руски 45)..."
                                 class="field field-teal w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm placeholder:text-slate-400 text-sm leading-relaxed"></textarea>
+                            <p id="rawDescriptionError" class="hidden mt-1.5 text-xs font-medium text-rose-600"></p>
                         </div>
-                        
+
 <div class="space-y-2">
     <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Снимка на проблема</label>
     
@@ -1546,6 +1547,86 @@ async function closeSignalByOwner(id) {
         }
 
         loadPublicSignals();
+
+        // =========================================================================
+        // ВАЛИДАЦИЯ НА ОПИСАНИЕТО НА СИГНАЛА (АНТИ-СПАМ ЗАЩИТА)
+        // =========================================================================
+        // Самостоятелна, преизползваема функция за проверка на текста в описанието.
+        // Връща { valid, message } и не пипа DOM-а, за да може лесно да се тества.
+        function validateDescriptionText(text) {
+            const trimmed = (text || '').trim();
+
+            if (trimmed.length < 15) {
+                return { valid: false, message: 'Описанието трябва да съдържа поне 15 символа.' };
+            }
+
+            const words = trimmed.split(/\s+/).filter(Boolean);
+            if (words.length < 3) {
+                return { valid: false, message: 'Моля, опишете ситуацията с поне 3 отделни думи.' };
+            }
+
+            // \p{L} покрива букви от всяка азбука (кирилица и латиница) чрез Unicode regex.
+            const letters = trimmed.match(/\p{L}/gu) || [];
+            if (letters.length < 3) {
+                return { valid: false, message: 'Описанието трябва да съдържа истински думи с букви, а не само символи или цифри.' };
+            }
+
+            return { valid: true, message: '' };
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const descriptionField = document.getElementById('rawDescription');
+            const descriptionError = document.getElementById('rawDescriptionError');
+            if (!descriptionField) return;
+
+            const ERROR_CLASSES = ['border-rose-400', 'ring-2', 'ring-rose-100', 'bg-rose-50/30'];
+            const NORMAL_CLASSES = ['border-slate-200'];
+            let touched = false;
+
+            function applyState(result) {
+                descriptionField.setCustomValidity(result.valid ? '' : result.message);
+
+                if (result.valid) {
+                    descriptionField.classList.remove(...ERROR_CLASSES);
+                    descriptionField.classList.add(...NORMAL_CLASSES);
+                    if (descriptionError) {
+                        descriptionError.textContent = '';
+                        descriptionError.classList.add('hidden');
+                    }
+                } else {
+                    descriptionField.classList.remove(...NORMAL_CLASSES);
+                    descriptionField.classList.add(...ERROR_CLASSES);
+                    if (descriptionError) {
+                        descriptionError.textContent = result.message;
+                        descriptionError.classList.remove('hidden');
+                    }
+                }
+            }
+
+            descriptionField.addEventListener('input', () => {
+                const result = validateDescriptionText(descriptionField.value);
+                // Преди първото напускане на полето (blur) само тихо обновяваме валидността,
+                // за да не притесняваме потребителя с червено докато тепърва пише първите букви.
+                if (touched) {
+                    applyState(result);
+                } else {
+                    descriptionField.setCustomValidity(result.valid ? '' : result.message);
+                    if (result.valid) {
+                        descriptionField.classList.remove(...ERROR_CLASSES);
+                        descriptionField.classList.add(...NORMAL_CLASSES);
+                        if (descriptionError) {
+                            descriptionError.textContent = '';
+                            descriptionError.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+
+            descriptionField.addEventListener('blur', () => {
+                touched = true;
+                applyState(validateDescriptionText(descriptionField.value));
+            });
+        });
 
         document.getElementById('signalForm').addEventListener('submit', async function(event) {
             event.preventDefault();
