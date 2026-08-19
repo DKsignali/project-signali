@@ -438,6 +438,7 @@
         }
     /* Елегантен бутон за геолокация върху картата */
 .leaflet-control-geolocation {
+    position: relative; /* Опорна точка за пулсиращия пръстен (::after) */
     background: #ffffff;
     border: 1px solid rgba(15, 23, 42, 0.15) !important;
     border-radius: 12px !important;
@@ -473,6 +474,118 @@
     0% { transform: scale(0.9); opacity: 0.6; }
     50% { transform: scale(1.15); opacity: 1; }
     100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* =========================================================================
+   ПРИВЛИЧАЩ ВНИМАНИЕТО ПУЛСИРАЩ ПРЪСТЕН ВЪРХУ БУТОНА ЗА ГЕОЛОКАЦИЯ
+   =========================================================================
+   Пръстенът е отделен ::after слой, защото box-shadow на самия бутон е
+   маркиран с !important и би блокирал анимацията в каскадата.
+   pointer-events: none гарантира, че пръстенът никога не прихваща кликове
+   и не пречи на работата с картата. */
+.leaflet-control-geolocation.geolocation-attention::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    animation: geoAttention 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes geoAttention {
+    0%   { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(79, 70, 229, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+
+/* Докато трае търсенето, спираме пръстена - тогава свети SVG индикаторът. */
+.leaflet-control-geolocation.geolocation-loading::after {
+    animation: none;
+    box-shadow: none;
+}
+
+/* Достъпност: при заявено намалено движение пръстенът остава статичен. */
+@media (prefers-reduced-motion: reduce) {
+    .leaflet-control-geolocation.geolocation-attention::after {
+        animation: none;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.35);
+    }
+    .geolocation-loading svg { animation: none; }
+}
+
+/* =========================================================================
+   ОБРАТНА ВРЪЗКА ВЪТРЕ В КАРТАТА (РЕЖИМ ЦЯЛ ЕКРАН)
+   =========================================================================
+   При цял екран елементът #map покрива всичко останало, затова
+   #statusNotification и #locationBadge (които са ИЗВЪН картата) стават
+   невидими. Тези слоеве живеят вътре в #map и дублират съобщенията,
+   само докато картата е на цял екран. */
+.map-feedback-layer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200; /* над Leaflet контролите (1000) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: min(86%, 460px);
+    pointer-events: none; /* слоят не прихваща жестове по картата */
+}
+.map-feedback-layer.is-top { top: 12px; }
+.map-feedback-layer.is-bottom { bottom: 30px; }
+
+.map-toast {
+    pointer-events: auto;
+    max-width: 100%;
+    padding: 10px 14px;
+    border: 1px solid;
+    border-radius: 12px;
+    background: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+    box-shadow: 0 14px 30px -12px rgba(2, 6, 23, 0.45);
+    animation: mapToastIn 0.25s ease-out;
+}
+.map-toast-success { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.map-toast-error   { background: #fff1f2; color: #9f1239; border-color: #fecdd3; }
+.map-toast.is-leaving { animation: mapToastOut 0.3s ease-in forwards; }
+
+@keyframes mapToastIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mapToastOut { to { opacity: 0; transform: translateY(6px); } }
+
+.map-location-chip {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border: 1px solid #a7f3d0;
+    border-radius: 10px;
+    background: #ecfdf5;
+    color: #065f46;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 10px 22px -10px rgba(2, 6, 23, 0.35);
+}
+.map-location-chip button {
+    border: 0;
+    background: transparent;
+    color: #047857;
+    font-weight: 800;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 6px;
+}
+.map-location-chip button:hover { background: #d1fae5; color: #064e3b; }
+
+@media (prefers-reduced-motion: reduce) {
+    .map-toast, .map-toast.is-leaving { animation: none; }
 }
     </style>
 </head>
@@ -1054,10 +1167,13 @@ const aiUserIcon = L.icon({
 // >>> ДОБАВЕН БЛОК: СИГУРЕН КОНТРОЛ ЗА ГЕОЛОКАЦИЯ
 // =========================================================================
 const GeolocationControl = L.Control.extend({
-    options: { position: 'topleft' },
+    // Преместен в горния десен ъгъл, за да не се слива с бутоните за мащаб/цял екран.
+    options: { position: 'topright' },
 
     onAdd: function (map) {
-        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-geolocation');
+        // Класът geolocation-attention включва пулсиращия пръстен, докато
+        // гражданинът още не е използвал автоматичната геолокация.
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-geolocation geolocation-attention');
         container.title = "Намери моята локация";
         
         container.innerHTML = `
@@ -1095,6 +1211,9 @@ const GeolocationControl = L.Control.extend({
                     document.getElementById('latitude').value = lat;
                     document.getElementById('longitude').value = lng;
                     document.getElementById('locationBadge').classList.remove('hidden');
+
+                    // Локацията е засечена успешно - пулсиращият пръстен вече не е нужен.
+                    container.classList.remove('geolocation-attention');
 
                     const popupText = `
                         <div class="text-center space-y-1 font-sans">
@@ -1326,6 +1445,120 @@ map.on('click', function(e) {
             }
         });
 
+        // =========================================================================
+        // ОБРАТНА ВРЪЗКА ВЪТРЕ В КАРТАТА ПРИ РЕЖИМ ЦЯЛ ЕКРАН
+        // =========================================================================
+        // #statusNotification и #locationBadge стоят ИЗВЪН #map. При цял екран
+        // картата покрива останалата страница и тези елементи стават невидими.
+        // Долният модул дублира съобщенията в слоеве вътре в самата карта.
+
+        function isMapFullscreen() {
+            const mapEl = document.getElementById('map');
+            if (!mapEl) return false;
+            const fsEl = document.fullscreenElement || document.webkitFullscreenElement || null;
+            if (fsEl && (fsEl === mapEl || fsEl.contains(mapEl))) return true;
+            // Резервен вариант за pseudo-fullscreen режима на Leaflet.fullscreen
+            return mapEl.classList.contains('leaflet-fullscreen-on');
+        }
+
+        // Създава (еднократно) слой вътре в картата. position: 'top' | 'bottom'
+        function getMapFeedbackLayer(position) {
+            const mapEl = document.getElementById('map');
+            if (!mapEl) return null;
+            const id = position === 'top' ? 'mapFeedbackTop' : 'mapFeedbackBottom';
+            let layer = document.getElementById(id);
+            if (!layer) {
+                layer = document.createElement('div');
+                layer.id = id;
+                layer.className = `map-feedback-layer ${position === 'top' ? 'is-top' : 'is-bottom'}`;
+                mapEl.appendChild(layer);
+            }
+            return layer;
+        }
+
+        function showMapToast(message, type = 'success') {
+            const layer = getMapFeedbackLayer('bottom');
+            if (!layer) return;
+
+            const toast = document.createElement('div');
+            toast.className = `map-toast ${type === 'success' ? 'map-toast-success' : 'map-toast-error'}`;
+            // Съдържанието е същото като на #statusNotification - подателите вече
+            // екранират динамичните части чрез escapeHtml().
+            toast.innerHTML = message;
+
+            // Кликът върху съобщението не бива да поставя маркер върху картата.
+            if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(toast);
+
+            layer.appendChild(toast);
+            while (layer.children.length > 3) layer.removeChild(layer.firstChild);
+
+            setTimeout(() => {
+                toast.classList.add('is-leaving');
+                setTimeout(() => toast.remove(), 320);
+            }, 5000);
+        }
+
+        function clearMapToasts() {
+            const layer = document.getElementById('mapFeedbackBottom');
+            if (layer) layer.innerHTML = '';
+        }
+
+        // Огледало на #locationBadge вътре в картата (само при цял екран).
+        function syncMapLocationChip() {
+            const badge = document.getElementById('locationBadge');
+            const layer = getMapFeedbackLayer('top');
+            if (!badge || !layer) return;
+
+            const shouldShow = isMapFullscreen() && !badge.classList.contains('hidden');
+            let chip = document.getElementById('mapLocationChip');
+
+            if (!shouldShow) {
+                if (chip) chip.remove();
+                return;
+            }
+            if (chip) return; // вече е показан
+
+            chip = document.createElement('div');
+            chip.id = 'mapLocationChip';
+            chip.className = 'map-location-chip';
+            chip.innerHTML = '<span>📍 Локацията е фиксирана!</span>';
+
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.title = 'Премахни маркера';
+            clearBtn.textContent = '✕';
+            clearBtn.addEventListener('click', () => clearUserMarker());
+            chip.appendChild(clearBtn);
+
+            if (window.L && L.DomEvent) L.DomEvent.disableClickPropagation(chip);
+            layer.appendChild(chip);
+        }
+
+        // Следим #locationBadge, вместо да променяме всички места, които го
+        // показват/скриват - така съществуващата логика остава непокътната.
+        (function observeLocationBadge() {
+            const badge = document.getElementById('locationBadge');
+            if (!badge || typeof MutationObserver === 'undefined') return;
+            new MutationObserver(syncMapLocationChip)
+                .observe(badge, { attributes: true, attributeFilter: ['class'] });
+        })();
+
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                if (!isMapFullscreen()) clearMapToasts();
+                syncMapLocationChip();
+            });
+        });
+
+        // Leaflet.fullscreen излъчва и собствено събитие - покрива pseudo-fullscreen,
+        // при който браузърното fullscreenchange не се задейства.
+        if (typeof map !== 'undefined' && map.on) {
+            map.on('fullscreenchange', () => {
+                if (!isMapFullscreen()) clearMapToasts();
+                syncMapLocationChip();
+            });
+        }
+
         function showNotification(message, type = 'success') {
             const notif = document.getElementById('statusNotification');
             notif.className = "mb-6 p-4 rounded-xl text-sm font-medium transition duration-300 border";
@@ -1336,7 +1569,14 @@ map.on('click', function(e) {
             }
             notif.innerHTML = message;
             notif.classList.remove('hidden');
-            notif.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            if (isMapFullscreen()) {
+                // При цял екран съобщението извън картата е невидимо, а
+                // scrollIntoView няма ефект - показваме го върху самата карта.
+                showMapToast(message, type);
+            } else {
+                notif.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
         async function voteSignal(id, voteType) {
