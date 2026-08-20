@@ -210,6 +210,40 @@ export function resolveDistrictKey(input) {
   return null;
 }
 
+// Ключове, под които Nominatim/LocationIQ може да върне пловдивския район.
+// ВАЖНО: районите НЕ са под един и същ ключ - „Централен“, „Западен“,
+// „Северен“, „Източен“ и „Тракия“ идват като borough, а „Южен“ като county.
+// Затова се проверяват няколко ключа, а накрая се сканират всички стойности.
+const GEO_DISTRICT_KEYS = ['borough', 'county', 'city_district', 'district', 'municipality', 'suburb'];
+
+/**
+ * Определя района по данните от геокодера - най-надеждният източник, защото
+ * се базира на реалните координати, а не на предположение от ИИ.
+ *
+ * @param {object} address     - обектът address от отговора на геокодера
+ * @param {string} displayName - display_name от същия отговор (резервен вариант)
+ * @returns {string|null} ключът на района или null
+ */
+export function resolveDistrictFromGeo(address, displayName) {
+  const addr = address && typeof address === 'object' ? address : {};
+
+  // 1) Проверка на познатите ключове в подредба по достоверност.
+  for (const key of GEO_DISTRICT_KEYS) {
+    const hit = resolveDistrictKey(addr[key]);
+    if (hit) return hit;
+  }
+
+  // 2) Сканиране на всички останали стойности - независимо от името на ключа.
+  for (const value of Object.values(addr)) {
+    if (typeof value !== 'string') continue;
+    const hit = resolveDistrictKey(value);
+    if (hit) return hit;
+  }
+
+  // 3) Последен вариант: пълният адресен низ ("..., Южен, Пловдив, ...").
+  return resolveDistrictKey(displayName);
+}
+
 export function resolveCategoryKey(input) {
   const text = normalize(input);
   if (!text) return null;
@@ -245,6 +279,7 @@ export function resolveEnterpriseEmail(input) {
 export function resolveRouting({
   category,
   district,
+  geoDistrict,
   location,
   streetClass,
   assignedInstitution,
@@ -261,7 +296,16 @@ export function resolveRouting({
 
   const categoryKey = resolveCategoryKey(category);
   const categoryDef = categoryKey ? CATEGORIES[categoryKey] : null;
-  const districtKey = resolveDistrictKey(district) || resolveDistrictKey(assignedInstitution);
+  // Приоритет: геокодерът (реални координати) > предположението на ИИ >
+  // името на институцията. Координатите са най-достоверни, защото не зависят
+  // от това дали ИИ познава в кой район се намира дадена улица.
+  const geoDistrictKey = resolveDistrictKey(geoDistrict);
+  const districtKey = geoDistrictKey
+    || resolveDistrictKey(district)
+    || resolveDistrictKey(assignedInstitution);
+  const districtSource = geoDistrictKey ? 'geo'
+    : (resolveDistrictKey(district) ? 'ai'
+    : (resolveDistrictKey(assignedInstitution) ? 'institution' : null));
   const districtEmail = districtKey && isValidEmail(DISTRICTS[districtKey].email)
     ? DISTRICTS[districtKey].email
     : null;
@@ -332,6 +376,7 @@ export function resolveRouting({
       categoryLabel: categoryDef ? categoryDef.label : null,
       districtKey,
       districtLabel: districtKey ? DISTRICTS[districtKey].label : null,
+      districtSource,             // 'geo' | 'ai' | 'institution' | null
       streetType,                 // 'boulevard' | 'local'
       authorityType,              // 'district' | 'central' | 'fallback' | null
       authorityLabel,             // кой орган образува преписката (To)
