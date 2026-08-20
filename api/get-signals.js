@@ -27,7 +27,9 @@ export default async function handler(request, response) {
     // 🛠️ Добавено: updated_at, за да може фронтендът да изчисли точно 48-те часа от момента на поправянето!
     const { data, error } = await supabase
       .from('signals')
-      .select('id, created_at, updated_at, corrected_text, location, assigned_institution, priority, status, image_url, latitude, longitude, votes_still_there, votes_fixed')
+      // responsible_authority = компетентният орган (To), assigned_enterprise = изпълнителят (Cc).
+      // Старите сигнали имат NULL в тях - фронтендът пада обратно към assigned_institution.
+      .select('id, created_at, updated_at, corrected_text, location, assigned_institution, responsible_authority, assigned_enterprise, priority, status, image_url, latitude, longitude, votes_still_there, votes_fixed')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

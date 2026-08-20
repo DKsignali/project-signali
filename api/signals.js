@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend'; // Импортираме новата библиотека за имейли
 import crypto from 'crypto'; // Модул за сигурно генериране на токени
+import { resolveRouting, CATEGORY_KEYS, DISTRICT_LABELS, CATEGORIES, TEST_MODE_RECIPIENT } from './_lib/emailRouting.js';
 
 // Инициализираме AI извън handler-а
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -107,6 +108,11 @@ export default async function handler(request, response) {
   * Сглоби адреса красиво, ясно и прецизно.
 - Ниво на спешност (priority) – избери точно едно от: 'Low', 'Medium', 'High'.
 - Отговорна институция (assigned_institution) – избери най-подходящата от следните: 'ОП Чистота', 'ОП Градини и паркове', 'ОП Организация и контрол на транспорта', 'ОП Паркиране и репатриране', 'Пловдивски общински инспекторат (ПОИ)', 'Район Централен', 'Район Южен', 'Район Северен', 'Район Западен', 'Район Източен', 'Район Тракия', 'Община Пловдив'.
+- Категория на проблема (category) – избери ТОЧНО един от следните ключове (връщай самия ключ на латиница, не описанието):
+${CATEGORY_KEYS.map(key => `  * '${key}' – ${CATEGORIES[key].label}`).join('\n')}
+- Район на инцидента (district) – избери точно едно от: ${DISTRICT_LABELS.map(d => `'${d}'`).join(', ')}.
+  * Определи района по адреса/квартала в Пловдив. Ако районът НЕ може да бъде установен със сигурност, върни празен низ "" – КАТЕГОРИЧНО не гадай.
+- Вид на уличната мрежа (street_class) – върни 'boulevard', ако проблемът е на ГЛАВЕН БУЛЕВАРД (компетентна е Община Пловдив), или 'local', ако е на местна улица, тротоар или в квартал (компетентно е районното кметство). При съмнение върни 'local'.
 
 СТЪПКА 3 (Правно оформяне): Създай официално писмо-сигнал по чл. 107-111 от АПК. Писмото трябва да съдържа:
 - "ДО: [Името на избраната институция]"
@@ -122,6 +128,9 @@ export default async function handler(request, response) {
   "corrected_text": "коригираният текст от стъпка 1",
   "location": "крайният сглобен адрес (улица, номер, квартал)",
   "assigned_institution": "избраната институция от стъпка 2",
+  "category": "избраният ключ на категорията от стъпка 2",
+  "district": "избраният район от стъпка 2 (или празен низ)",
+  "street_class": "'boulevard' или 'local' от стъпка 2",
   "priority": "избраният приоритет от стъпка 2",
   "official_letter": "официалното писмо от стъпка 3"
 }`;
@@ -219,10 +228,36 @@ if (!finalLat || !finalLng) {
   }
 }
     // =========================================================================
+    // ИНТЕЛИГЕНТНО НАСОЧВАНЕ: To = компетентен орган, Cc = изпълнител (ОП)
+    // =========================================================================
+    // Изчислява се ПРЕДИ записа в базата, за да може решението да бъде
+    // съхранено заедно със сигнала (нужно е и на фронтенда, и за одит).
+    //
+    // ТЕСТОВ РЕЖИМ Е ВКЛЮЧЕН ПО ПОДРАЗБИРАНЕ - цялата поща отива на един
+    // тестов адрес и НЕ достига реалните общински кутии.
+    //   ROUTING_LIVE=true            -> включва истинското насочване
+    //   ROUTING_OVERRIDE_EMAIL=...   -> пренасочва теста към друг адрес
+    const isLiveRouting = process.env.ROUTING_LIVE === 'true';
+    const testRecipient = isLiveRouting
+      ? undefined
+      : (process.env.ROUTING_OVERRIDE_EMAIL || TEST_MODE_RECIPIENT);
+
+    const routing = resolveRouting({
+      category: structuredData.category,
+      district: structuredData.district,
+      location: structuredData.location || geoAddress,
+      streetClass: structuredData.street_class,
+      assignedInstitution: structuredData.assigned_institution,
+      centralMunicipalityEmail: process.env.CENTRAL_MUNICIPALITY_EMAIL,
+      fallbackEmail: process.env.MUNICIPALITY_FALLBACK_EMAIL || TEST_MODE_RECIPIENT,
+      overrideEmail: testRecipient,
+    });
+
+    // =========================================================================
     // ДИРЕКТЕН И СИГУРЕН ЗАПИС В SUPABASE ЧРЕЗ HTTP REST API
     // =========================================================================
     try {
-      const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, ""); 
+      const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, "");
       const supabaseKey = process.env.SUPABASE_ANON_KEY;
       
       const payload = { 
@@ -242,7 +277,16 @@ if (!finalLat || !finalLng) {
         // НОВИТЕ КОЛОНИ ЗА ГЕО-ЛОКАЦИЯ (АВТОМАТИЧНИ ИЛИ ОТ КАРТАТА):
         latitude: finalLat || null,
         longitude: finalLng || null,
-        owner_token: ownerToken // Записваме токена в Supabase payload-а
+        owner_token: ownerToken, // Записваме токена в Supabase payload-а
+
+        // РЕЗУЛТАТ ОТ МАРШРУТИЗАЦИЯТА
+        // Входни данни (за статистика и филтриране):
+        category: routing.resolution.categoryKey || null,
+        district: routing.resolution.districtLabel || null,
+        street_class: routing.resolution.streetType || null,
+        // Взетото решение (показва се на фронтенда и служи за одит):
+        responsible_authority: routing.resolution.authorityLabel || null,
+        assigned_enterprise: routing.resolution.enterpriseLabel || null
       };
 
       console.log("Опит за директна HTTP заявка към:", `${supabaseUrl}/rest/v1/signals`);
@@ -340,10 +384,24 @@ if (!finalLat || !finalLng) {
         });
 
         // 2. ИМЕЙЛ ДО СЪОТВЕТНАТА ИНСТИТУЦИЯ (СЪС СПАСИТЕЛНИЯ REPlY_TO)
-        const targetEmail = 'dkbusiness901@gmail.com'; // Тестов официален адрес на Общината
+        // Маршрутизацията вече е изчислена преди записа в базата (виж по-горе).
+        console.log('[МАРШРУТИЗАЦИЯ]', JSON.stringify({
+          signalId,
+          mode: isLiveRouting ? 'LIVE' : 'TEST',
+          actualTo: routing.to,
+          actualCc: routing.cc,
+          ...routing.resolution,
+        }));
+
+        // Предпазна мрежа: ако по някаква причина няма нито един валиден получател,
+        // сигналът не се изпраща в нищото - прекъсваме с ясна грешка в лога.
+        if (routing.to.length === 0) {
+          throw new Error('Няма валиден получател за сигнала (провери MUNICIPALITY_FALLBACK_EMAIL).');
+        }
 
         // Автоматично извличане/подготовка на данните за професионалното заглавие по АПК
-        const categoryInfo = structuredData.category || (structuredData.corrected_text ? structuredData.corrected_text.substring(0, 30) + '...' : 'Градска неизправност');
+        const categoryInfo = routing.resolution.categoryLabel
+          || (structuredData.corrected_text ? structuredData.corrected_text.substring(0, 30) + '...' : 'Градска неизправност');
         const locationInfo = structuredData.location || geoAddress;
 
         // КОРЕКЦИЯ: Изчистване на нови редове в заглавието за предотвратяване на SMTP грешки
@@ -351,13 +409,14 @@ if (!finalLat || !finalLng) {
         const cleanLocation = String(locationInfo).replace(/[\r\n]/g, ' ');
 
         await resend.emails.send({
-          from: `${citizenName} (през Сигнали Пловдив) <no-reply@signaliplovdiv.org>`, 
-          to: [targetEmail],
-          
+          from: `${citizenName} (през Сигнали Пловдив) <no-reply@signaliplovdiv.org>`,
+          to: routing.to,                                   // масив от адреси (Resend формат)
+          ...(routing.cc.length > 0 ? { cc: routing.cc } : {}), // Cc се подава само ако има район
+
           // КЛЮЧОВИЯТ МОМЕНТ: Ако общината натисне "Отговор/Reply", писмото отива при гражданина!
           reply_to: citizenEmail,
           attachments: emailAttachments, // Прикачваме снимката като реален файл
-          
+
           // ЗАГЛАВИЕ ПО ФОРМУЛАТА НА АПК ЗА ДЪРЖАВНАТА АДМИНИСТРАЦИЯ
           subject: `[СИГНАЛ по чл. 107 от АПК] Относно: ${cleanCategory} – ${cleanLocation} (Подател: ${citizenName})`,
           html: `
@@ -370,8 +429,26 @@ if (!finalLat || !finalLng) {
                 <strong>• Три имена:</strong> ${citizenName}<br>
                 <strong>• Имейл адрес:</strong> <a href="mailto:${citizenEmail}">${citizenEmail}</a><br>
                 <strong>• Телефон за връзка:</strong> ${citizenPhone || 'Не е предоставен'}<br>
-                <strong>• Локация по ИИ:</strong> ${structuredData.location}
+                <strong>• Локация по ИИ:</strong> ${structuredData.location}<br>
+                <strong>• Категория:</strong> ${routing.resolution.categoryLabel || 'Неопределена'}<br>
+                <strong>• Район:</strong> ${routing.resolution.districtLabel || 'Неопределен'}<br>
+                <strong>• Вид на улицата:</strong> ${routing.resolution.streetType === 'boulevard' ? 'Главен булевард' : 'Местна улица'}<br>
+                <strong>• Компетентен орган (адресат):</strong> ${routing.resolution.authorityLabel || 'Община Пловдив'}<br>
+                <strong>• Уведомено предприятие (копие):</strong> ${routing.resolution.enterpriseLabel || 'Няма – дейността се извършва от администрацията'}
               </div>
+
+              ${routing.resolution.overrideActive ? `
+                <div style="background-color:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:8px;margin:16px 0;font-size:12px;color:#78350f;">
+                  <strong>⚠ ТЕСТОВ РЕЖИМ — това писмо НЕ е изпратено до Общината.</strong><br><br>
+                  При реална експлоатация писмото щеше да бъде изпратено до:<br>
+                  <strong>To (компетентен орган):</strong> ${routing.resolution.intendedTo || '—'}
+                  ${routing.resolution.authorityLabel ? ` (${routing.resolution.authorityLabel})` : ''}<br>
+                  <strong>Cc (изпълнител):</strong> ${routing.resolution.intendedCc || '— няма'}
+                  ${routing.resolution.enterpriseLabel ? ` (${routing.resolution.enterpriseLabel})` : ''}<br>
+                  <strong>Вид улица:</strong> ${routing.resolution.streetType === 'boulevard' ? 'главен булевард' : 'местна улица'}<br><br>
+                  За включване на реалното насочване: <code>ROUTING_LIVE=true</code>
+                </div>
+              ` : ''}
 
               <h3 style="color: #0f172a; margin-top: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px;">ПРАВЕН ТЕКСТ НА ЖАЛБАТА:</h3>
               <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #0f172a; border: 1px solid #e2e8f0;">${structuredData.official_letter}</pre>
