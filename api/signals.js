@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Resend } from 'resend'; // Импортираме новата библиотека за имейли
 import crypto from 'crypto'; // Модул за сигурно генериране на токени
-import { resolveRouting, CATEGORY_KEYS, DISTRICT_LABELS, CATEGORIES, TEST_MODE_RECIPIENT } from './_lib/emailRouting.js';
+import { resolveRouting, resolveDistrictFromGeo, CATEGORY_KEYS, DISTRICT_LABELS, CATEGORIES, TEST_MODE_RECIPIENT } from './_lib/emailRouting.js';
 
 // Инициализираме AI извън handler-а
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -50,6 +50,7 @@ export default async function handler(request, response) {
     // БЛОК: ОБРАТНО ГЕОКОДИРАНЕ (САМО ПРИ РЕАЛЕН КЛИК НА КАРТАТА)
     // =========================================================================
     let geoAddress = "";
+    let geoDistrict = null; // Район, разпознат по РЕАЛНИ координати (най-достоверен източник)
     let finalLat = latitude;
     let finalLng = longitude;
 
@@ -62,6 +63,11 @@ export default async function handler(request, response) {
         if (geoResponse.ok) {
           const geoData = await geoResponse.json();
           if (geoData && geoData.address) {
+            // Извличаме района от географските данни. Пловдивските райони идват
+            // под РАЗЛИЧНИ ключове (borough за повечето, county за „Южен“),
+            // затова разчитаме на помощната функция, а не на конкретен ключ.
+            geoDistrict = resolveDistrictFromGeo(geoData.address, geoData.display_name);
+
             const road = geoData.address.road || geoData.address.pedestrian || '';
             const houseNumber = geoData.address.house_number || geoData.address.building || '';
             const quarter = geoData.address.suburb || geoData.address.neighbourhood || '';
@@ -190,7 +196,7 @@ if (!finalLat || !finalLng) {
 
       // ОПИТ 1: Структурирано търсене за конкретна улица (Защита за малки улици като ул. Младост)
       let forwardResponse = await fetch(
-        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&street=${encodeURIComponent(cleanSearchAddress)}&city=${encodeURIComponent('Пловдив')}&country=${encodeURIComponent('България')}&format=json&accept-language=bg&limit=1`
+        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&street=${encodeURIComponent(cleanSearchAddress)}&city=${encodeURIComponent('Пловдив')}&country=${encodeURIComponent('България')}&format=json&accept-language=bg&addressdetails=1&limit=1`
       );
 
       let forwardData = [];
@@ -203,7 +209,7 @@ if (!finalLat || !finalLng) {
         console.log(`[БЕКЕНД ДИАГНОСТИКА] Опит 2 (Общ обект/Парк): Търсене в LocationIQ за: "${cleanSearchAddress}, Пловдив"`);
         
         forwardResponse = await fetch(
-          `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&limit=1`
+          `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&addressdetails=1&limit=1`
         );
 
         if (forwardResponse.ok) {
@@ -217,6 +223,13 @@ if (!finalLat || !finalLng) {
       if (forwardData && forwardData.length > 0) {
         finalLat = parseFloat(forwardData[0].lat);
         finalLng = parseFloat(forwardData[0].lon);
+
+        // Дори когато гражданинът НЕ е маркирал картата, търсенето по адрес
+        // връща административната йерархия - използваме я за района.
+        if (!geoDistrict) {
+          geoDistrict = resolveDistrictFromGeo(forwardData[0].address, forwardData[0].display_name);
+        }
+
         console.log(`[УСПЕХ] Намерени координати за центъра на улицата [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
       } else {
         console.log(`[OSM ВНИМАНИЕ] Няма намерени съвпадения за: "${cleanSearchAddress}"`);
@@ -245,6 +258,7 @@ if (!finalLat || !finalLng) {
     const routing = resolveRouting({
       category: structuredData.category,
       district: structuredData.district,
+      geoDistrict, // има предимство пред предположението на ИИ
       location: structuredData.location || geoAddress,
       streetClass: structuredData.street_class,
       assignedInstitution: structuredData.assigned_institution,
