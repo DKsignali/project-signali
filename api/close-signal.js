@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     // 3. Вземаме сигнала от Supabase заедно с неговия таен owner_token
     const { data: existingSignal, error: fetchOwnerError } = await supabase
       .from('signals')
-      .select('owner_token, votes_still_there')
+      .select('owner_token')
       .eq('id', id)
       .single();
 
@@ -60,12 +60,13 @@ export default async function handler(req, res) {
     }
 
     // 5. Обновяваме статуса на 'Решен' (точно както изисква твоят signals_status_check)
+    // ВАЖНО: броячите НЕ се пипат. Те отразяват реалните гласове в signal_votes
+    // и не бива да се фалшифицират - иначе сигнал, затворен от автора, изглежда
+    // сякаш трима граждани са го потвърдили.
     const { error: updateOwnerError } = await supabase
       .from('signals')
-      .update({ 
+      .update({
         status: 'Решен',
-        votes_fixed: 3, 
-        votes_still_there: existingSignal.votes_still_there || 0,
         updated_at: new Date().toISOString()
       })
       .eq('id', id);
