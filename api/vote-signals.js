@@ -93,79 +93,74 @@ export default async function handler(req, res) {
     }
 
     // =========================================================================
-    // 🔒 НОВА СЪРВЪРНА ЗАЩИТА: ИЗВЛИЧАНЕ И ПРОВЕРКА НА IP АДРЕСА ПРЕДИ ВОТА
+    // ИЗВЛИЧАНЕ НА IP АДРЕСА НА ГЛАСОПОДАВАТЕЛЯ
     // =========================================================================
-    const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    // ВАЖНО: x-forwarded-for често е ВЕРИГА ("клиент, proxy1, proxy2").
+    // Само първият адрес е реалният клиент. Ако се запише целият низ, един и
+    // същ човек, минал през различен прокси път, получава различен user_ip и
+    // защитата срещу повторно гласуване тихо престава да работи.
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const userIp =
+      (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : null) ||
+      req.headers['x-real-ip'] ||
+      (req.socket && req.socket.remoteAddress) ||
+      null;
 
-    // Пробваме да запишем IP адреса в защитната ни база данни
-    const { error: insertVoteError } = await supabase
-      .from('signal_votes')
-      .insert({ signal_id: id, user_ip: userIp, vote_type: voteType });
-
-    // Ако Supabase върне грешка за дублиран уникален ключ (вече има такова IP за този сигнал)
-    if (insertVoteError) {
-      if (insertVoteError.code === '23505') { // Код 23505 е уникално ограничение в PostgreSQL
-        return res.status(400).json({ success: false, error: 'Вече сте гласували за този сигнал.' });
-      }
-      throw insertVoteError;
+    if (!userIp) {
+      return res.status(400).json({ success: false, error: 'Гласът не може да бъде идентифициран.' });
     }
 
     // =========================================================================
-    // СЕГАШНАТА ТИ КРАУДСОРСИНГ ЛОГИКА
+    // ГЛАСУВАНЕ ЧРЕЗ ЕДНА ТРАНЗАКЦИЯ (Postgres функция cast_vote)
     // =========================================================================
-    const { data: signal, error: fetchError } = await supabase
-      .from('signals')
-      .select('votes_still_there, votes_fixed, status')
-      .eq('id', id)
-      .single();
+    // Функцията прави всичко наведнъж и атомарно:
+    //   * заключва реда на сигнала (без състезание при едновременни гласове)
+    //   * презаписва съществуващия глас вместо да добавя нов ред
+    //   * ИЗЧИСЛЯВА броячите от таблицата, вместо да ги увеличава
+    // Затова един човек не може да събере 3 гласа, колкото и пъти да смени вота си.
+    const { data: result, error: rpcError } = await supabase.rpc('cast_vote', {
+      p_signal_id: id,
+      p_user_ip: userIp,
+      p_vote_type: voteType,
+    });
 
-    if (fetchError) {
-      throw fetchError;
+    if (rpcError) {
+      throw rpcError;
     }
 
-    if (signal.status === 'Решен') {
-      return res.status(400).json({ success: false, error: 'Този сигнал вече е маркиран като решен.' });
+    if (!result || result.ok !== true) {
+      const reason = result ? result.error : 'unknown';
+      const messages = {
+        not_found: 'Сигналът не е намерен.',
+        already_resolved: 'Този сигнал вече е маркиран като решен.',
+        invalid_vote_type: 'Невалиден тип гласуване.',
+        missing_voter: 'Гласът не може да бъде идентифициран.',
+      };
+      const status = reason === 'not_found' ? 404 : 400;
+      return res.status(status).json({
+        success: false,
+        error: messages[reason] || 'Гласът не можа да бъде отчетен.',
+      });
     }
 
-    let updatedVotesStillThere = signal.votes_still_there || 0;
-    let updatedVotesFixed = signal.votes_fixed || 0;
-    let newStatus = signal.status;
-
-    if (voteType === 'still_there') {
-      updatedVotesStillThere += 1;
-    } else if (voteType === 'fixed') {
-      updatedVotesFixed += 1;
-      
-      // Ключовата бизнес логика: Ако стигнем 3 гласа "Оправен", затваряме сигнала!
-      if (updatedVotesFixed >= 3) {
-        newStatus = 'Решен';
-      }
+    // Съобщение според това какво реално се случи
+    let message;
+    if (result.votes_fixed >= 3) {
+      message = 'Благодарим Ви! Сигналът беше затворен успешно от гражданите.';
+    } else if (result.changed) {
+      message = 'Гласът Ви беше променен успешно!';
+    } else {
+      message = 'Гласът Ви бе успешно отчетен!';
     }
 
-    // 5. Обновяваме данните в Supabase
-    const { error: updateError } = await supabase
-      .from('signals')
-      .update({ 
-        votes_still_there: updatedVotesStillThere,
-        votes_fixed: updatedVotesFixed,
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    // 6. Връщаме детайлен отговор към фронт-енда
     return res.status(200).json({
       success: true,
-      message: updatedVotesFixed >= 3 
-        ? 'Благодарим Ви! Сигналът беше затворен успешно от гражданите.' 
-        : 'Гласът Ви бе успешно отчетен!',
-      current_status: newStatus,
-      votes_fixed: updatedVotesFixed,
-      votes_still_there: updatedVotesStillThere
+      message,
+      current_status: result.status,
+      vote_type: result.vote_type,          // текущият глас на този потребител
+      changed: result.changed,              // true = смяна на предишен глас
+      votes_fixed: result.votes_fixed,
+      votes_still_there: result.votes_still_there,
     });
 
   } catch (err) {
