@@ -37,59 +37,17 @@ export default async function handler(req, res) {
   try {
     // Прочитаме сигурно тялото на заявката
     const body = await getRequestBody(req);
-    const { id, voteType, token } = body; 
+    const { id, voteType } = body;
 
     // 2. Валидация на входните данни
     if (!id || !voteType) {
       return res.status(400).json({ success: false, error: 'Липсва ID на сигнала или тип глас.' });
     }
 
-    // Разрешаваме и новия тип вотинг от автора на сигнала
-    if (voteType !== 'still_there' && voteType !== 'fixed' && voteType !== 'resolve_by_owner') {
+    // Този маршрут обслужва САМО гражданското гласуване.
+    // Затварянето от автора на сигнала се извършва през /api/close-signal.
+    if (voteType !== 'still_there' && voteType !== 'fixed') {
       return res.status(400).json({ success: false, error: 'Невалиден тип гласуване.' });
-    }
-
-    // =========================================================================
-    // НОВА ХЕНДЛЪР ЛОГИКА: ДИРЕКТНО ЗАТВАРЯНЕ ОТ СОБСТВЕНИКА НА СИГНАЛА
-    // =========================================================================
-    if (voteType === 'resolve_by_owner') {
-      if (!token) {
-        return res.status(401).json({ success: false, error: 'Липсва идентификационен токен.' });
-      }
-
-      // Вземаме сигнала от Supabase заедно с неговия таен owner_token
-      const { data: existingSignal, error: fetchOwnerError } = await supabase
-        .from('signals')
-        .select('owner_token, votes_still_there')
-        .eq('id', id)
-        .single();
-
-      if (fetchOwnerError || !existingSignal) {
-        return res.status(404).json({ success: false, error: 'Сигналът не е намерен.' });
-      }
-
-      // ВАЛИДАЦИЯ: Проверяваме съвпадението на токените
-      if (existingSignal.owner_token !== token) {
-        return res.status(403).json({ success: false, error: 'Грешен или невалиден токен за управление.' });
-      }
-
-      // Обновяваме статуса директно без допълнителни гласувания на 'Решен'
-      const { error: updateOwnerError } = await supabase
-        .from('signals')
-        .update({ 
-          status: 'Решен',
-          votes_fixed: 3, // Симулираме пълно одобрение за съвместимост с интерфейсите
-          votes_still_there: existingSignal.votes_still_there || 0
-        })
-        .eq('id', id);
-
-      if (updateOwnerError) throw updateOwnerError;
-
-      return res.status(200).json({
-        success: true,
-        message: 'Благодарим Ви! Вие затворихте Вашия сигнал успешно.',
-        current_status: 'Решен'
-      });
     }
 
     // =========================================================================
