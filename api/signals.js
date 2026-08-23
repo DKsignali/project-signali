@@ -8,6 +8,77 @@ import { resolveRouting, resolveDistrictFromGeo, CATEGORY_KEYS, DISTRICT_LABELS,
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY); // Инициализация на Resend
 
+// =============================================================================
+// ГЕОГРАФСКИ ГРАНИЦИ НА ПЛОВДИВ
+// =============================================================================
+// Същият правоъгълник, който фронтендът налага на картата. Използва се за
+// ограничаване на търсенето (viewbox) и за проверка на върнатия резултат -
+// без нея геокодерът може да върне съвпадение на 150 км от града.
+const PLOVDIV_BOUNDS = { south: 42.083, west: 24.643, north: 42.186, east: 24.823 };
+// Форматът на viewbox е: ляво,горе,дясно,долу
+const PLOVDIV_VIEWBOX = `${PLOVDIV_BOUNDS.west},${PLOVDIV_BOUNDS.north},${PLOVDIV_BOUNDS.east},${PLOVDIV_BOUNDS.south}`;
+
+function isInsidePlovdiv(lat, lng) {
+  const la = parseFloat(lat), ln = parseFloat(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(ln)) return false;
+  return la >= PLOVDIV_BOUNDS.south && la <= PLOVDIV_BOUNDS.north
+      && ln >= PLOVDIV_BOUNDS.west  && ln <= PLOVDIV_BOUNDS.east;
+}
+
+// Свежда адреса до чисто име на улица (+ номер), както изисква street=.
+// Премахва представки, град, квартал в скоби, кавички и запетаи.
+// Работи по токени, защото \b не разпознава граници на кирилски думи.
+const ADDRESS_NOISE_TOKENS = new Set([
+  'ул', 'ул.', 'бул', 'бул.', 'улица', 'булевард', 'пл', 'пл.', 'площад',
+  'гр', 'гр.', 'град', 'пловдив', 'кв', 'кв.', 'квартал',
+  'без', 'номер', 'неуточнен', 'неуточнена', 'жк', 'ж.к.',
+]);
+
+function buildStreetQuery(address) {
+  return String(address == null ? '' : address)
+    .replace(/\(.*?\)/g, ' ')        // (кв. Ухото)
+    .replace(/["'„“”«»№]/g, ' ')     // кавички и знак за номер
+    .replace(/[,;/]/g, ' ')          // запетаите чупят street=, "/" идва от "ул./бул."
+    .split(/\s+/)
+    .filter(token => token && !ADDRESS_NOISE_TOKENS.has(token.toLowerCase()))
+    .join(' ')
+    .trim();
+}
+
+// =============================================================================
+// ПРАВИЛО ЗА ПРЕДИМСТВО МЕЖДУ МАРКЕР И ПИСАН АДРЕС
+// =============================================================================
+// Гражданинът може да зададе място по ДВА начина - маркер на картата и адрес,
+// изписан в описанието. Когато двата се разминават, по-надеждният е ПИСАНИЯТ
+// адрес: маркерът може да е поставен при случайно докосване, докато написаната
+// улица е съзнателно действие.
+//
+// Но маркерът НЕ бива да се изхвърля прибързано: при сигнал от рода на
+// "боклук зад блока на ул. Ружа" точката в двора е ПО-ТОЧНА от центъра на
+// улицата. Затова маркерът се заменя само при ИСТИНСКО разминаване - когато
+// двете места са на повече от този радиус едно от друго.
+const ADDRESS_CONFLICT_RADIUS_M = 300;
+
+// Разстояние между две точки в метри (haversine).
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = deg => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Проверява дали писаният адрес сочи същата улица като маркера.
+// Сравнява се с includes(), защото \b не работи с кирилица.
+function mentionsRoad(addressText, roadName) {
+  if (!addressText || !roadName) return false;
+  const road = String(roadName).toLowerCase().trim();
+  if (road.length < 3) return false; // твърде кратко за надеждно съвпадение
+  return String(addressText).toLowerCase().includes(road);
+}
+
 async function getRequestBody(req) {
   if (req.body) return req.body;
   const buffers = [];
@@ -50,9 +121,16 @@ export default async function handler(request, response) {
     // БЛОК: ОБРАТНО ГЕОКОДИРАНЕ (САМО ПРИ РЕАЛЕН КЛИК НА КАРТАТА)
     // =========================================================================
     let geoAddress = "";
+    let geoRoad = "";       // Само името на улицата под маркера - за сравнение с писания адрес
     let geoDistrict = null; // Район, разпознат по РЕАЛНИ координати (най-достоверен източник)
     let finalLat = latitude;
     let finalLng = longitude;
+
+    // Координатите, дошли от маркера/геолокацията (ако изобщо има такива).
+    const pinLat = latitude;
+    const pinLng = longitude;
+    const hasPin = Boolean(pinLat && pinLng);
+    let locationSource = hasPin ? 'pin' : 'none';
 
     if (finalLat && finalLng) {
       try {
@@ -69,6 +147,7 @@ export default async function handler(request, response) {
             geoDistrict = resolveDistrictFromGeo(geoData.address, geoData.display_name);
 
             const road = geoData.address.road || geoData.address.pedestrian || '';
+            geoRoad = road; // запазваме го за проверката за разминаване по-долу
             const houseNumber = geoData.address.house_number || geoData.address.building || '';
             const quarter = geoData.address.suburb || geoData.address.neighbourhood || '';
             
@@ -178,25 +257,39 @@ ${CATEGORY_KEYS.map(key => `  * '${key}' – ${CATEGORIES[key].label}`).join('\n
 // =========================================================================
 // БЛОК: НАМИРАНЕ НА КООРДИНАТИ ЧРЕЗ ЧИСТИЯ АДРЕС, ИЗВЛЕЧЕН ОТ ИИ (ПОДСИГУРЕН)
 // =========================================================================
-if (!finalLat || !finalLng) {
+// Кога изобщо търсим координати по писания адрес:
+//   * няма маркер                      -> винаги (единственият източник)
+//   * има маркер, но текстът сочи ДРУГА улица -> да, за да проверим разминаването
+//   * има маркер и текстът сочи СЪЩАТА улица  -> не, маркерът е по-точен
+{
+  const aiAddressForCheck = structuredData.location || structuredData.Location || '';
+  const textMatchesPinRoad = mentionsRoad(aiAddressForCheck, geoRoad);
+  const shouldCheckTextAddress = !hasPin || !textMatchesPinRoad;
+
+  if (hasPin && textMatchesPinRoad) {
+    console.log(`[ЛОКАЦИЯ] Маркерът и описаният адрес сочат една и съща улица ("${geoRoad}") - запазваме точния маркер.`);
+  }
+
+if (shouldCheckTextAddress) {
   let aiExtractAddress = structuredData.location || structuredData.Location || geoAddress;
-  
+
   if (aiExtractAddress && aiExtractAddress !== "Неуточнена локация в град Пловдив") {
     try {
-      // ПОДОБРЕНО И ДВОЙНО ПОДСИГУРЕНО ПРЕЧИСТВАНЕ ЗА OPENSTREETMAP:
-      let cleanSearchAddress = aiExtractAddress
-        .replace(/\(.*\)/g, "")                       // Премахва съдържанието в скоби -> (напр. кв. Смирненски)
-        .replace(/без номер|неуточнен/gi, "")        // Премахва думи за липса на номер
-        .replace(/(ул\.|бул\.|улица|булевард|№)/gi, "") // Премахва префиксите
-        .replace(/["'„“«»]/g, "")                     // Премахва абсолютно всички видове кавички
-        .replace(/\s+/g, " ")                         // Премахва двойни/множествени интервали
-        .trim();
+      // ПРЕЧИСТВАНЕ НА АДРЕСА ЗА ПАРАМЕТЪРА street=
+      // =====================================================================
+      // Параметърът street= приема САМО име на улица (плюс номер).
+      // Ако вътре остане градът ("Ружа, гр. Пловдив"), търсенето връща 0
+      // резултата и сигналът остава без координати.
+      //
+      // ВНИМАНИЕ: \b в JavaScript работи само с ASCII и НЕ може да служи за
+      // граница на кирилски думи - затова чистенето е по ТОКЕНИ, не с \b.
+      const cleanSearchAddress = buildStreetQuery(aiExtractAddress);
 
       console.log(`[БЕКЕНД ДИАГНОСТИКА] Опит 1 (Улица): Търсене в LocationIQ за street="${cleanSearchAddress}", city="Пловдив"`);
 
       // ОПИТ 1: Структурирано търсене за конкретна улица (Защита за малки улици като ул. Младост)
       let forwardResponse = await fetch(
-        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&street=${encodeURIComponent(cleanSearchAddress)}&city=${encodeURIComponent('Пловдив')}&country=${encodeURIComponent('България')}&format=json&accept-language=bg&addressdetails=1&limit=1`
+        `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&street=${encodeURIComponent(cleanSearchAddress)}&city=${encodeURIComponent('Пловдив')}&country=${encodeURIComponent('България')}&viewbox=${PLOVDIV_VIEWBOX}&bounded=1&format=json&accept-language=bg&addressdetails=1&limit=1`
       );
 
       let forwardData = [];
@@ -209,7 +302,7 @@ if (!finalLat || !finalLng) {
         console.log(`[БЕКЕНД ДИАГНОСТИКА] Опит 2 (Общ обект/Парк): Търсене в LocationIQ за: "${cleanSearchAddress}, Пловдив"`);
         
         forwardResponse = await fetch(
-          `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&format=json&accept-language=bg&addressdetails=1&limit=1`
+          `https://eu1.locationiq.com/v1/search?key=${process.env.LOCATIONIQ_TOKEN}&q=${encodeURIComponent(cleanSearchAddress + ", Пловдив")}&viewbox=${PLOVDIV_VIEWBOX}&bounded=1&format=json&accept-language=bg&addressdetails=1&limit=1`
         );
 
         if (forwardResponse.ok) {
@@ -221,16 +314,45 @@ if (!finalLat || !finalLng) {
 
       // Обработка на намерените координати от успешен опит
       if (forwardData && forwardData.length > 0) {
-        finalLat = parseFloat(forwardData[0].lat);
-        finalLng = parseFloat(forwardData[0].lon);
+        const foundLat = parseFloat(forwardData[0].lat);
+        const foundLng = parseFloat(forwardData[0].lon);
 
-        // Дори когато гражданинът НЕ е маркирал картата, търсенето по адрес
-        // връща административната йерархия - използваме я за района.
-        if (!geoDistrict) {
-          geoDistrict = resolveDistrictFromGeo(forwardData[0].address, forwardData[0].display_name);
+        // ПОСЛЕДНА ПРОВЕРКА: приемаме съвпадението само ако е в Пловдив.
+        // Без нея геокодерът е връщал точки на 150 км от града (напр.
+        // 43.20, 23.55), които после падат извън границите на картата и
+        // сигналът става недостъпен за гражданите.
+        if (!isInsidePlovdiv(foundLat, foundLng)) {
+          console.warn(`[ГЕО ОТХВЪРЛЕН] Съвпадението за "${cleanSearchAddress}" е извън Пловдив: ${foundLat}, ${foundLng}`);
+        } else if (!hasPin) {
+          // Няма маркер - писаният адрес е единственият източник.
+          finalLat = foundLat;
+          finalLng = foundLng;
+          locationSource = 'text';
+          console.log(`[ЛОКАЦИЯ] По описания адрес [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
+        } else {
+          // Има И маркер, И различна улица в текста - решава разстоянието.
+          const gap = distanceMeters(pinLat, pinLng, foundLat, foundLng);
+
+          if (gap > ADDRESS_CONFLICT_RADIUS_M) {
+            // Истинско разминаване (различна част на града) - написаното от
+            // гражданина има предимство пред евентуално случайния маркер.
+            finalLat = foundLat;
+            finalLng = foundLng;
+            locationSource = 'text-override';
+            console.log(`[ЛОКАЦИЯ] Разминаване ${Math.round(gap)} м между маркера ("${geoRoad || 'без улица'}") и описания адрес ("${cleanSearchAddress}") - предимство има описаният адрес.`);
+          } else {
+            // Наблизо са - маркерът най-вероятно уточнява същото място
+            // (напр. двор зад блока), затова остава той.
+            locationSource = 'pin';
+            console.log(`[ЛОКАЦИЯ] Маркерът е на ${Math.round(gap)} м от "${cleanSearchAddress}" - запазваме по-точния маркер.`);
+          }
         }
 
-        console.log(`[УСПЕХ] Намерени координати за центъра на улицата [${cleanSearchAddress}]: ${finalLat}, ${finalLng}`);
+        // Административната йерархия от търсенето върши работа за района,
+        // ако маркерът не е дал такъв.
+        if (!geoDistrict && isInsidePlovdiv(foundLat, foundLng)) {
+          geoDistrict = resolveDistrictFromGeo(forwardData[0].address, forwardData[0].display_name);
+        }
       } else {
         console.log(`[OSM ВНИМАНИЕ] Няма намерени съвпадения за: "${cleanSearchAddress}"`);
       }
@@ -240,6 +362,15 @@ if (!finalLat || !finalLng) {
     }
   }
 }
+} // край на блока за предимство между маркер и писан адрес
+
+    console.log('[ЛОКАЦИЯ РЕЗУЛТАТ]', JSON.stringify({
+      source: locationSource,   // 'pin' | 'text' | 'text-override' | 'none'
+      lat: finalLat || null,
+      lng: finalLng || null,
+      pinRoad: geoRoad || null,
+    }));
+
     // =========================================================================
     // ИНТЕЛИГЕНТНО НАСОЧВАНЕ: To = компетентен орган, Cc = изпълнител (ОП)
     // =========================================================================
