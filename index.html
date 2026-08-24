@@ -101,26 +101,45 @@
             background: #ffffff;
         }
         .leaflet-popup-content {
-           margin: 12px 14px !important;
+           /* Дясното поле е по-голямо НАРОЧНО: там стои бутонът за затваряне.
+              Полето изнася вляво както текста, така и лентата за скролиране,
+              за да не се застъпват с "x". Виж .leaflet-popup-close-button. */
+           margin: 12px 28px 12px 14px !important;
            line-height: 1.4;
            max-width: 280px !important; /* Гарантира, че няма да излезе от мобилен екран */
            max-height: 320px;            /* При по-дълъг текст добавя скролbar, без да раздува картата */
            overflow-y: auto;            /* Автоматичен скрол при нужда */
            box-sizing: border-box;
+           scrollbar-width: thin;
+           scrollbar-color: #cbd5e1 transparent;
        }
+        /* Дискретна лента за скролиране вътре в балончето */
+        .leaflet-popup-content::-webkit-scrollbar { width: 6px; }
+        .leaflet-popup-content::-webkit-scrollbar-track { background: transparent; }
+        .leaflet-popup-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+        .leaflet-popup-content::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .leaflet-popup-tip {
             box-shadow: 0 6px 12px -6px rgba(2, 6, 23, 0.25);
             border-radius: 2px;
         }
+        /* Бутонът заема ивицата 6px..30px от десния ръб. Дясното поле на
+           .leaflet-popup-content е 28px (+4px от wrapper-а = 32px), така че
+           съдържанието свършва ПРЕДИ бутона и застъпване е невъзможно. */
         .leaflet-popup-close-button {
-            width: 26px !important;
-            height: 26px !important;
-            top: 8px !important;
-            right: 8px !important;
+            width: 24px !important;
+            height: 24px !important;
+            top: 6px !important;
+            right: 6px !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
             border-radius: 8px;
             color: #94a3b8 !important;
-            font-size: 18px !important;
-            line-height: 24px !important;
+            font-size: 16px !important;
+            line-height: 1 !important;
             font-weight: 600;
             transition: background-color .2s ease, color .2s ease;
         }
