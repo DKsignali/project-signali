@@ -1117,11 +1117,41 @@ const map = L.map('map', {
     minZoom: 12        // Не позволява отдалечаване извън рамките на града
 }).setView([42.14492, 24.75032], 13);
     
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20
-}).addTo(map);
+// =========================================================================
+// ПОДЛОЖКА НА КАРТАТА
+// =========================================================================
+// CARTO вече изисква API ключ - без него плочките идват с воден знак
+// "API KEY REQUIRED". Ключът се взима от /api/map-config (пази се в
+// средата на Vercel, не в публичното хранилище).
+// Ако ключ няма или конфигурацията не се зареди, използваме стандартните
+// плочки на OpenStreetMap, за да не остане картата никога с воден знак.
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+function addBaseLayer(cartoKey) {
+    if (cartoKey) {
+        // Форматът е по документацията на CARTO - без {r}, с ?key= накрая.
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=' + encodeURIComponent(cartoKey), {
+            attribution: OSM_ATTRIBUTION + ' &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+        return 'carto';
+    }
+
+    // Резервен вариант. Сървърите на OSM стигат до мащаб 19 - при 20
+    // Leaflet просто уголемява плочките от 19, вместо да ги иска.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: OSM_ATTRIBUTION,
+        maxNativeZoom: 19,
+        maxZoom: 20
+    }).addTo(map);
+    return 'osm';
+}
+
+fetch('/api/map-config')
+    .then(res => (res.ok ? res.json() : {}))
+    .then(config => addBaseLayer(config && config.cartoKey))
+    .catch(() => addBaseLayer(null));
 
 // ОБНОВЕНА ЛОГИКА: Персонализирана функция за създаване на изцяло ЧЕРВЕНИ/КЪСТЪМ клъстери
 const markerClusterGroup = L.markerClusterGroup({
