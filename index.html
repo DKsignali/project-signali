@@ -1276,7 +1276,6 @@ const GeolocationControl = L.Control.extend({
                         <div class="text-center space-y-1 font-sans">
                             <b>Вашата текуща локация</b><br>
                             <span class="text-[10px] text-slate-400">(Точност: ±${Math.round(accuracy)} метра)</span><br>
-                            ${accuracy > 100 ? `<span class="block max-w-[200px] text-[10px] leading-snug text-amber-700 font-semibold">⚠ Местоположението е приблизително. Преместете маркера до точното място или посочете адреса в описанието.</span>` : ''}
                             <button type="button" onclick="clearUserMarker()" class="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer">✕ Премахни маркер</button>
                         </div>
                     `;
