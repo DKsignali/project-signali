@@ -779,6 +779,7 @@
 <form id="signalForm" class="space-y-6">
     <input type="hidden" id="latitude">
     <input type="hidden" id="longitude">
+    <input type="hidden" id="locationAccuracy">
     
     <!-- === ТУЛТИПОВЕ === -->
     <div class="bg-gradient-to-br from-indigo-50/70 to-indigo-50/20 p-5 rounded-2xl border border-indigo-100/70 space-y-4">
@@ -1206,6 +1207,7 @@ function clearUserMarker() {
     if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
     document.getElementById('latitude').value = '';
     document.getElementById('longitude').value = '';
+    document.getElementById('locationAccuracy').value = '';
     document.getElementById('locationBadge').classList.add('hidden');
 }
 
@@ -1264,6 +1266,7 @@ const GeolocationControl = L.Control.extend({
 
                     document.getElementById('latitude').value = lat;
                     document.getElementById('longitude').value = lng;
+                    document.getElementById('locationAccuracy').value = Math.round(accuracy);
                     document.getElementById('locationBadge').classList.remove('hidden');
 
                     // Локацията е засечена успешно - пулсиращият пръстен вече не е нужен.
@@ -1273,6 +1276,7 @@ const GeolocationControl = L.Control.extend({
                         <div class="text-center space-y-1 font-sans">
                             <b>Вашата текуща локация</b><br>
                             <span class="text-[10px] text-slate-400">(Точност: ±${Math.round(accuracy)} метра)</span><br>
+                            ${accuracy > 100 ? `<span class="block max-w-[200px] text-[10px] leading-snug text-amber-700 font-semibold">⚠ Местоположението е приблизително. Преместете маркера до точното място или посочете адреса в описанието.</span>` : ''}
                             <button type="button" onclick="clearUserMarker()" class="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer">✕ Премахни маркер</button>
                         </div>
                     `;
@@ -1293,6 +1297,7 @@ const GeolocationControl = L.Control.extend({
                             const pos = ev.target.getLatLng();
                             document.getElementById('latitude').value = pos.lat;
                             document.getElementById('longitude').value = pos.lng;
+                            document.getElementById('locationAccuracy').value = ''; // гражданинът е уточнил мястото ръчно
                         });
                     }                    
                     userMarker.openPopup();
@@ -1332,6 +1337,7 @@ map.on('click', function(e) {
 
     document.getElementById('latitude').value = e.latlng.lat;
     document.getElementById('longitude').value = e.latlng.lng;
+    document.getElementById('locationAccuracy').value = ''; // ръчно поставен маркер = точна точка
     document.getElementById('locationBadge').classList.remove('hidden');
 
     const popupText = `
@@ -1357,6 +1363,7 @@ map.on('click', function(e) {
             const pos = ev.target.getLatLng();
             document.getElementById('latitude').value = pos.lat;
             document.getElementById('longitude').value = pos.lng;
+            document.getElementById('locationAccuracy').value = ''; // гражданинът е уточнил мястото ръчно
         });
     }
 });
@@ -2024,7 +2031,9 @@ async function closeSignalByOwner(id) {
                 rawDescription: document.getElementById('rawDescription').value.trim(),
                 imageUrl: document.getElementById('imageUrl').value.trim() || null,
                 latitude: document.getElementById('latitude').value ? parseFloat(document.getElementById('latitude').value) : null,
-                longitude: document.getElementById('longitude').value ? parseFloat(document.getElementById('longitude').value) : null
+                longitude: document.getElementById('longitude').value ? parseFloat(document.getElementById('longitude').value) : null,
+                // Точност на геолокацията (само от бутона) - при приблизителна позиция писаният адрес има предимство.
+                locationAccuracy: document.getElementById('locationAccuracy').value ? parseFloat(document.getElementById('locationAccuracy').value) : null
             };
 
             try {
