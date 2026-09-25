@@ -38,6 +38,17 @@
             --brand-teal: #0d9488;
         }
         html, body { background-color: #f6f8fc; }
+
+        /* Съобщение за тестов период - състоянието се пази в data-beta на <body>:
+           "notice" = лентата се вижда, "dismissed" = вижда се само бутонът в
+           хедъра, "live" = режимът е изключен и нищо не се показва.
+           Бутонът остава скрит на тесни екрани, за да не пренарежда хедъра. */
+        #betaChip { display: none; }
+        body[data-beta="dismissed"] #betaBanner,
+        body[data-beta="live"] #betaBanner { display: none; }
+        @media (min-width: 640px) {
+            body[data-beta="dismissed"] #betaChip { display: inline-flex; }
+        }
         body {
             background-image:
                 radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,0.07), transparent 60%),
@@ -610,6 +621,93 @@
 </head>
 <body class="font-sans antialiased text-slate-900 selection:bg-blue-500 selection:text-white">
 
+<!-- =========================================================================
+     СЪОБЩЕНИЕ ЗА ТЕСТОВ ПЕРИОД
+     =========================================================================
+     Платформата е достъпна публично, но сигналите още НЕ достигат общинските
+     институции (виж TEST_MODE_RECIPIENT в /api/_lib/emailRouting.js).
+     Лентата се скрива САМА, когато /api/map-config върне testMode: false,
+     т.е. когато ROUTING_LIVE=true във Vercel - няма нужда от промяна в кода.
+     -->
+<div id="betaBanner" role="status" class="border-b border-amber-300/70 bg-gradient-to-r from-amber-50 via-amber-100/70 to-amber-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-start gap-3">
+        <span class="relative flex h-2.5 w-2.5 shrink-0 mt-[3px]" aria-hidden="true">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60 animate-ping"></span>
+            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+        </span>
+        <p class="flex-1 text-[11px] sm:text-xs leading-relaxed text-amber-950 text-pretty">
+            <strong class="font-bold">Платформата е в тестов период.</strong>
+            Можете да подадете сигнал и ще получите потвърждение по имейл, но сигналите
+            <strong class="font-semibold">все още не се изпращат към общинските институции</strong>.
+            Благодарим Ви, че ни помагате да я подготвим за реална работа.
+        </p>
+        <button type="button" id="betaBannerClose" aria-label="Скрий съобщението за тестов период"
+                class="shrink-0 -mr-1 p-1 rounded-lg text-amber-700/70 hover:text-amber-900 hover:bg-amber-200/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 transition cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+</div>
+
+<script>
+// Управление на съобщението за тестов период.
+// Затварянето се помни в localStorage, а в хедъра остава малък бутон
+// "Тестов период", който връща лентата - информацията никога не изчезва.
+(function () {
+    const STORAGE_KEY = 'signali_beta_notice_dismissed';
+    let isLive = false;      // става true, ако сървърът каже, че тестовият режим е изключен
+    let dismissed = false;   // резерва в паметта, когато localStorage е блокиран
+
+    // localStorage може да хвърли грешка (частен режим, блокирани бисквитки),
+    // затова състоянието се пази и в паметта - затварянето работи винаги,
+    // просто не се помни при следващо зареждане.
+    function readDismissed() {
+        try { if (localStorage.getItem(STORAGE_KEY) === '1') return true; } catch (e) {}
+        return dismissed;
+    }
+
+    function setDismissed(value) {
+        dismissed = value;
+        try {
+            if (value) localStorage.setItem(STORAGE_KEY, '1');
+            else localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+    }
+
+    // Видимостта се управлява от CSS чрез data-beta на <body>, а не с класа
+    // "hidden" - така не зависи от реда на правилата на Tailwind и бутонът в
+    // хедъра може да се скрива на тесни екрани с медийна заявка.
+    function applyState() {
+        if (!document.body) return;
+        document.body.dataset.beta = isLive ? 'live' : (readDismissed() ? 'dismissed' : 'notice');
+    }
+
+    // Извиква се от /api/map-config, когато ROUTING_LIVE=true.
+    window.hideBetaNotice = function () { isLive = true; applyState(); };
+
+    // Веднага, а не на DOMContentLoaded - иначе вече затворената лента
+    // просветва за миг при всяко зареждане.
+    applyState();
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const closeBtn = document.getElementById('betaBannerClose');
+        const chip = document.getElementById('betaChip');
+
+        if (closeBtn) closeBtn.addEventListener('click', function () {
+            setDismissed(true);
+            applyState();
+        });
+
+        if (chip) chip.addEventListener('click', function () {
+            setDismissed(false);
+            applyState();
+            document.getElementById('betaBanner').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        applyState();
+    });
+})();
+</script>
+
    <header class="sticky top-0 z-50 bg-slate-950/80 text-white border-b border-white/10 backdrop-blur-xl">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
         <div class="flex items-center gap-3 group">
@@ -633,6 +731,11 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
+            <!-- Остава след скриване на лентата, за да не изчезне информацията за тестовия период. -->
+            <button type="button" id="betaChip" class="items-center gap-1.5 text-[11px] sm:text-xs bg-amber-400/15 border border-amber-300/40 px-3 py-1.5 rounded-full text-amber-200 font-semibold tracking-wide hover:bg-amber-400/25 transition cursor-pointer">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>
+                Тестов период
+            </button>
             <span class="inline-flex items-center gap-1.5 text-[11px] sm:text-xs bg-indigo-500/15 border border-indigo-400/30 px-3.5 py-1.5 rounded-full text-indigo-200 font-semibold tracking-wide">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
                 Дигитален пощенски оператор
@@ -1156,7 +1259,11 @@ function addBaseLayer(cartoKey) {
 
 fetch('/api/map-config')
     .then(res => (res.ok ? res.json() : {}))
-    .then(config => addBaseLayer(config && config.cartoKey))
+    .then(config => {
+        addBaseLayer(config && config.cartoKey);
+        // Сървърът казва дали още сме в тестов режим (ROUTING_LIVE).
+        if (config && config.testMode === false) hideBetaNotice();
+    })
     .catch(() => addBaseLayer(null));
 
 // ОБНОВЕНА ЛОГИКА: Персонализирана функция за създаване на изцяло ЧЕРВЕНИ/КЪСТЪМ клъстери

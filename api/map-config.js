@@ -36,5 +36,10 @@ export default function handler(request, response) {
     console.error('[КАРТА] CARTO_BASEMAPS_KEY е зададен, но има невалиден формат - използва се резервната подложка.');
   }
 
-  return response.status(200).json({ cartoKey });
+  // Тестов режим: докато ROUTING_LIVE не е true, сигналите отиват на тестов
+  // адрес вместо към общината. Фронтендът показва лента за това и я скрива
+  // сам, когато режимът бъде изключен - без промяна в кода.
+  const testMode = process.env.ROUTING_LIVE !== 'true';
+
+  return response.status(200).json({ cartoKey, testMode });
 }
