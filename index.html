@@ -2233,15 +2233,22 @@ showNotification(
                 // Малък UX забавител (400ms) за плавен преход, за да не премигне грозно при моментален отговор от мрежата
                 await new Promise(resolve => setTimeout(resolve, 400));
 
-                const res = await fetch(`/api/get-signals`);
+                // Търсим точно този сигнал на сървъра. По-рано се теглеше
+                // целият регистър и се филтрираше тук - бавно, а и вече
+                // невъзможно, защото регистърът връща само последните сигнали.
+                const res = await fetch(`/api/get-signals?id=${encodeURIComponent(idInput)}`);
                 const result = await res.json();
-                
+
                 if (result.success) {
-                    const found = result.data.find(s => s.id == idInput);
+                    const found = result.data[0];
                     if(found) {
                         const isRes = found.status === 'Разрешен от граждани' || found.status === 'Решен';
-                        const isOwner = !!localStorage.getItem(`owner_token_signal_${found.id}`);
-                        
+                        // localStorage хвърля грешка при блокирани бисквитки/частен
+                        // режим - без try/catch цялата проверка на статуса се
+                        // проваляше с "Мрежова грешка".
+                        let isOwner = false;
+                        try { isOwner = !!localStorage.getItem(`owner_token_signal_${found.id}`); } catch (e) {}
+
                         // ДОБАВЕНО: Интегриране на бързия бутон за управление вътре в кутията за проследяване
                         const trackingActionBtn = (!isRes && isOwner)
                             ? `<div class="pt-2 mt-1 border-t border-amber-200/40">
