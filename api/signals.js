@@ -257,6 +257,56 @@ function mentionsRoad(addressText, roadName) {
   return String(addressText).toLowerCase().includes(road);
 }
 
+// =============================================================================
+// ОГРАНИЧЕНИЕ НА БРОЯ СИГНАЛИ ОТ ЕДИН ИМЕЙЛ
+// =============================================================================
+// Имейлът е далеч по-добър измерител за "един човек" от IP адреса: мобилните
+// оператори вкарват хиляди абонати зад един и същ публичен IP (CGNAT), така че
+// ограничение по IP би спряло цял оператор наведнъж.
+//
+// Прозорецът е ПЛЪЗГАЩ (последните 24 часа), а не календарен ден - иначе в
+// полунощ лимитът се нулира и могат да се подадат 10 сигнала за минути.
+const SIGNALS_PER_EMAIL = Number.parseInt(process.env.SIGNALS_PER_EMAIL_PER_DAY || '5', 10) || 5;
+const SIGNAL_WINDOW_HOURS = 24;
+
+// Връща { allowed, used, resetAt } за дадения имейл.
+// При техническа грешка НЕ блокира подаването (fail-open): по-добре един
+// сигнал в повече, отколкото недостъпна услуга за гражданите.
+async function checkEmailQuota(email) {
+  const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  // Service role ключът минава покрай RLS; anon ключът е резервен вариант.
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return { allowed: true, used: 0, resetAt: null };
+
+  const windowStart = new Date(Date.now() - SIGNAL_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  // ilike (без шаблонни символи) сравнява без оглед на малки/главни букви -
+  // "Ivan@mail.bg" и "ivan@mail.bg" са един и същ подател.
+  const query = `select=created_at&citizen_email=ilike.${encodeURIComponent(email)}` +
+    `&created_at=gte.${encodeURIComponent(windowStart)}` +
+    `&order=created_at.asc&limit=${SIGNALS_PER_EMAIL + 1}`;
+
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/signals?${query}`, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+    });
+    if (!res.ok) {
+      console.error(`[ЛИМИТ] Проверката на квотата върна статус ${res.status} - пропускаме сигнала.`);
+      return { allowed: true, used: 0, resetAt: null };
+    }
+
+    const rows = await res.json();
+    const used = Array.isArray(rows) ? rows.length : 0;
+    // Най-старият сигнал в прозореца определя кога се освобождава място.
+    const oldest = used > 0 ? new Date(rows[0].created_at) : null;
+    const resetAt = oldest ? new Date(oldest.getTime() + SIGNAL_WINDOW_HOURS * 60 * 60 * 1000) : null;
+
+    return { allowed: used < SIGNALS_PER_EMAIL, used, resetAt };
+  } catch (quotaError) {
+    console.error('[ЛИМИТ] Грешка при проверка на квотата - пропускаме сигнала:', quotaError);
+    return { allowed: true, used: 0, resetAt: null };
+  }
+}
+
 async function getRequestBody(req) {
   if (req.body) return req.body;
   const buffers = [];
@@ -290,6 +340,26 @@ export default async function handler(request, response) {
 
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
       throw new Error("Липсват конфигурационни ключове за Supabase във Vercel.");
+    }
+
+    // Проверката е ПРЕДИ скъпите стъпки (ИИ, геокодиране, имейли), за да не
+    // струва нищо спряният сигнал.
+    const normalizedEmail = String(citizenEmail).trim().toLowerCase();
+    const quota = await checkEmailQuota(normalizedEmail);
+    if (!quota.allowed) {
+      const resetText = quota.resetAt
+        ? quota.resetAt.toLocaleString('bg-BG', { timeZone: 'Europe/Sofia', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+        : null;
+      console.warn(`[ЛИМИТ] Достигнат дневен лимит за ${normalizedEmail}: ${quota.used} сигнала.`);
+
+      if (quota.resetAt) {
+        response.setHeader('Retry-After', Math.max(1, Math.ceil((quota.resetAt.getTime() - Date.now()) / 1000)));
+      }
+      return response.status(429).json({
+        success: false,
+        error: `Достигнахте ограничението от ${SIGNALS_PER_EMAIL} сигнала за 24 часа от този имейл адрес.`
+          + (resetText ? ` Ще можете да подадете нов сигнал след ${resetText} ч.` : ' Моля, опитайте отново по-късно.'),
+      });
     }
 
     // Генериране на уникален токен за автора
