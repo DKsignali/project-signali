@@ -1726,15 +1726,35 @@ map.on('click', function(e) {
             });
         }
 
+        // Икона за информативните съобщения - в стила на останалите икони в
+        // сайта (lucide, само контур). Кръгчето с "i" казва "за ваше сведение",
+        // докато крушка би звучала като съвет, а не като състояние.
+        const INFO_ICON_SVG = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+            </svg>`;
+
         function showNotification(message, type = 'success') {
             const notif = document.getElementById('statusNotification');
             notif.className = "mb-6 p-4 rounded-xl text-sm font-medium transition duration-300 border";
             if (type === 'success') {
                 notif.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200/60');
+                notif.innerHTML = message;
+            } else if (type === 'info') {
+                // Същата палитра като картата "Бързо следене на сигнал" - това
+                // не е грешка на гражданина, а информация за правилата.
+                notif.classList.add('bg-gradient-to-br', 'from-amber-50', 'to-orange-50/50', 'text-amber-900', 'border-amber-200/70');
+                notif.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <span class="w-8 h-8 shrink-0 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center ring-1 ring-amber-500/20">
+                            ${INFO_ICON_SVG}
+                        </span>
+                        <div class="leading-relaxed pt-1">${message}</div>
+                    </div>`;
             } else {
                 notif.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200/60');
+                notif.innerHTML = message;
             }
-            notif.innerHTML = message;
             notif.classList.remove('hidden');
 
             if (isMapFullscreen()) {
@@ -2195,6 +2215,10 @@ showNotification(
         if (previewContainer) previewContainer.classList.add('hidden');
         
         loadPublicSignals();
+    } else if (response.status === 429) {
+        // Достигнат дневен лимит - това НЕ е грешка на гражданина, а правило
+        // на платформата, затова се показва информативно (без червено и без ✕).
+        showNotification(`<strong>Внимание:</strong> ${escapeHtml(result.error || 'Моля, опитайте отново по-късно.')}`, 'info');
     } else {
         showNotification(`❌ <strong>Грешка:</strong> ${escapeHtml(result.error || 'Проблем при обработка.')}`, 'error');
     }
