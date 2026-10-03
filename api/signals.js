@@ -357,8 +357,8 @@ export default async function handler(request, response) {
       }
       return response.status(429).json({
         success: false,
-        error: `Достигнахте ограничението от ${SIGNALS_PER_EMAIL} сигнала за 24 часа от този имейл адрес.`
-          + (resetText ? ` Ще можете да подадете нов сигнал след ${resetText} ч.` : ' Моля, опитайте отново по-късно.'),
+        error: `За един ден от един имейл адрес се приемат до ${SIGNALS_PER_EMAIL} сигнала. Благодарим Ви за активността!`
+          + (resetText ? ` Ще можете да подадете следващия си сигнал след ${resetText} ч.` : ' Моля, опитайте отново по-късно.'),
       });
     }
 
