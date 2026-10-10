@@ -25,17 +25,17 @@ function isInsidePlovdiv(lat, lng) {
       && ln >= PLOVDIV_BOUNDS.west  && ln <= PLOVDIV_BOUNDS.east;
 }
 
-// Свежда адреса до чисто име на улица (+ номер), както изисква street=.
-// Премахва представки, град, квартал в скоби, кавички, запетаи и свързващите
-// думи около номера ("между № 29 и № 30", "в района на", "срещу").
+// Разбира адреса на съставните му части: улица, номер, квартал (жк) и блок.
 // Работи по токени, защото \b не разпознава граници на кирилски думи.
 //
-// ВНИМАНИЕ: съюзът "и" НЕ е тук - той е част от имена като "Кирил и Методий".
+// ВНИМАНИЕ: съюзът "и" НЕ е в шума - той е част от имена като "Кирил и Методий".
 // Диапазоните ("29 и 30") се режат другаде: всичко след първия номер отпада.
 const ADDRESS_NOISE_TOKENS = new Set([
   'ул', 'ул.', 'бул', 'бул.', 'улица', 'булевард', 'пл', 'пл.', 'площад',
-  'гр', 'гр.', 'град', 'пловдив', 'кв', 'кв.', 'квартал',
-  'без', 'номер', 'неуточнен', 'неуточнена', 'локация', 'локацията', 'жк', 'ж.к.',
+  'гр', 'гр.', 'град', 'пловдив',
+  'без', 'номер', 'неуточнен', 'неуточнена', 'локация', 'локацията',
+  // запълващ текст от ИИ, когато няма адрес ("Няма подаден GPS адрес")
+  'няма', 'подаден', 'подадена', 'gps',
   // предлози около адреса
   'между', 'до', 'срещу', 'близо', 'около', 'пред', 'зад', 'при', 'от', 'към',
   'в', 'във', 'на', 'с', 'със',
@@ -43,6 +43,11 @@ const ADDRESS_NOISE_TOKENS = new Set([
   'район', 'района', 'адрес', 'адреса', 'адреси', 'номера', 'номерата',
   'кръстовище', 'кръстовището', 'ъгъл', 'ъгъла', 'цялото', 'протежение',
 ]);
+
+// Квартал/жилищен комплекс. ПАЗИ СЕ, а не се изхвърля: точно той различава
+// "бул. Освобождение" в Тракия от едноименната улица в с. Крумово, а
+// "жк Тракия" - от ул. Тракия в Централен район.
+const QUARTER_MARKERS = new Set(['жк', 'жк.', 'ж.к', 'ж.к.', 'кв', 'кв.', 'квартал', 'комплекс']);
 
 // След тези думи идва номер на блок/вход/етаж, а НЕ номер на сграда по улицата
 // ("Ружа, бл. 12" не бива да се търси като "Ружа 12").
@@ -53,17 +58,15 @@ const ADDRESS_UNIT_MARKERS = new Set([
 // "29", "29а", "29-31" -> номер на сграда. "6-ти" (от "6-ти септември") НЕ е номер.
 const HOUSE_NUMBER_RE = /^(\d{1,4})([а-яa-z]?)(?:-\d+[а-яa-z]?)?$/iu;
 
-// Разделя адреса на име на улица и ПЪРВИЯ номер на сграда.
-// При диапазон ("между № 29 и № 30") остава само първият номер - точка на
-// самата улица е много по-полезна от нулев резултат.
-function parseStreetAddress(address) {
-  const tokens = String(address == null ? '' : address)
-    .replace(/\(.*?\)/g, ' ')        // (кв. Ухото)
-    .replace(/["'„“”«»№]/g, ' ')     // кавички и знак за номер
-    .replace(/[,;/]/g, ' ')          // запетаите чупят street=, "/" идва от "ул./бул."
-    .split(/\s+/)
-    .filter(Boolean);
+function normalizeAddressText(address) {
+  return String(address == null ? '' : address)
+    .replace(/["'„“”«»№]/g, ' ')      // кавички и знак за номер
+    .replace(/\//g, ' ')              // "ул./бул."
+    .trim();
+}
 
+// Разчита една част от адреса (между запетаите) като улица + номер.
+function parseStreetSegment(tokens) {
   const streetTokens = [];
   let number = null;
   let skipUnitNumber = false;
@@ -94,30 +97,98 @@ function parseStreetAddress(address) {
   return { street: streetTokens.join(' ').trim(), number };
 }
 
-function buildStreetQuery(address) {
-  const { street, number } = parseStreetAddress(address);
-  return street && number ? `${street} ${number}` : street;
+// Разделя адреса на части (запетаи и скоби) и разпознава ролята на всяка.
+function parseStreetAddress(address) {
+  const segments = normalizeAddressText(address)
+    .split(/[,;()]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  let street = '';
+  let number = null;
+  let quarter = '';
+  let block = null;
+
+  for (const segment of segments) {
+    const tokens = segment.split(/\s+/).filter(Boolean);
+    if (!tokens.length) continue;
+    const first = tokens[0].toLowerCase();
+
+    // "жк Тракия", "кв. Капана", "ЖК Тракия 127"
+    if (QUARTER_MARKERS.has(first)) {
+      const rest = tokens.slice(1);
+      const nameTokens = [];
+      for (const token of rest) {
+        const houseNumber = token.match(HOUSE_NUMBER_RE);
+        if (houseNumber) { if (block === null) block = houseNumber[1] + houseNumber[2].toLowerCase(); continue; }
+        if (ADDRESS_NOISE_TOKENS.has(token.toLowerCase())) continue;
+        nameTokens.push(token);
+      }
+      if (!quarter && nameTokens.length) quarter = nameTokens.join(' ');
+      continue;
+    }
+
+    // "блок 127" - номер на блок, а не на сграда по улица
+    if (ADDRESS_UNIT_MARKERS.has(first) || /^(бл|вх|ет|ап)\.\S+$/u.test(first)) {
+      const digits = segment.match(/\d{1,4}[а-яa-z]?/iu);
+      if (digits && block === null) block = digits[0].toLowerCase();
+      continue;
+    }
+
+    if (!street) {
+      const parsed = parseStreetSegment(tokens);
+      if (parsed.street) { street = parsed.street; number = parsed.number; }
+      else if (parsed.number !== null && number === null) number = parsed.number;
+    }
+  }
+
+  return { street, number, quarter, block };
 }
 
-// Поредица от все по-общи опити за търсене. Първият успешен печели:
-//   1) улица + номер          (street=)  -> точната сграда
-//   2) само улицата           (street=)  -> номерът липсва в OSM, но улицата съществува
-//   3) първата от две улици   (street=)  -> кръстовище "Марица и Ружа"
-//   4) свободен текст         (q=)       -> паркове, площади, реки и др. обекти
+function buildStreetQuery(address) {
+  const { street, number, quarter, block } = parseStreetAddress(address);
+  if (street) return number ? `${street} ${number}` : street;
+  return quarter ? `жк ${quarter}${block ? ' ' + block : ''}` : '';
+}
+
+// Поредица от все по-общи опити за търсене. Първият приемлив резултат печели:
+//   1) улица + номер + КВАРТАЛ (q=)      -> кварталът различава едноименните улици
+//   2) улица + номер        (street=)    -> точната сграда
+//   3) само улицата         (street=)    -> номерът липсва в OSM, но улицата съществува
+//   4) първата от две улици (street=)    -> кръстовище "Марица и Ружа"
+//   5) жк + блок / жк       (q=)         -> адрес без улица ("блок 127, жк Тракия")
+//   6) свободен текст       (q=)         -> паркове, площади, реки и др. обекти
 function buildGeocodeAttempts(address) {
-  const { street, number } = parseStreetAddress(address);
-  if (!street) return [];
+  const { street, number, quarter, block } = parseStreetAddress(address);
+  if (!street && !quarter) return [];
 
   const attempts = [];
   const add = (mode, text) => {
     if (text && !attempts.some(a => a.mode === mode && a.text === text)) attempts.push({ mode, text });
   };
 
-  if (number) add('street', `${street} ${number}`);
-  add('street', street);
-  const parts = street.split(/\s+и\s+/iu);
-  if (parts.length > 1) add('street', parts[0].trim());
-  add('q', street);
+  if (street && quarter) add('q', `${street}${number ? ' ' + number : ''}, ${quarter}`);
+  if (street && number) add('street', `${street} ${number}`);
+  if (street) {
+    add('street', street);
+    // Кръстовище ("бул. Марица и ул. Ружа"): цялото име се пробва първо, за
+    // да не се разкъсат имена като "Кирил и Методий". Ако то не съществува,
+    // търсим ПОСЛЕДНАТА улица преди първата - по-голямата обикновено се пише
+    // първа, а по-малката дава точка много по-близо до самото кръстовище.
+    const parts = street.split(/\s+и\s+/iu).map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      add('street', parts[parts.length - 1]);
+      add('street', parts[0]);
+    }
+  }
+  if (quarter) {
+    if (block) add('q', `жк ${quarter} ${block}`);
+    add('q', `жк ${quarter}`);
+    // Някои квартали са записани в картата без представка ("Кючук Париж"),
+    // затова накрая пробваме и само името.
+    add('q', quarter);
+  }
+  if (street) add('q', street);
   return attempts;
 }
 
@@ -141,10 +212,19 @@ function classifyMatch(result, attempt) {
   const addressType = String(result.addresstype || '').toLowerCase();
   if (CITY_LEVEL_TYPES.has(type) || CITY_LEVEL_TYPES.has(addressType)) return null;
 
+  // "Пловдив" е и име на ОБЛАСТ: търсене с city=Пловдив спокойно връща улица
+  // в с. Крумово, община Родопи. Затова изискваме населеното място да е
+  // самият град. Ако геокодерът не е върнал населено място, разчитаме на
+  // проверката за границите на картата.
+  const addr = result.address || {};
+  const place = addr.city || addr.town || addr.village || addr.municipality;
+  if (place && String(place).trim().toLowerCase() !== 'пловдив') {
+    return null;
+  }
+
   // За търсене по улица - върнатият обект трябва наистина да носи търсеното
   // име, а не да е произволно близко съвпадение.
   if (attempt.mode === 'street') {
-    const addr = result.address || {};
     const displayHead = String(result.display_name || '').split(',').slice(0, 2).join(' ');
     const haystack = [addr.road, addr.pedestrian, addr.footway, addr.path, addr.square, result.name, displayHead]
       .filter(Boolean).join(' ').toLowerCase();
