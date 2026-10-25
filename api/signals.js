@@ -387,6 +387,10 @@ async function checkEmailQuota(email) {
   }
 }
 
+// Повече от толкова снимки не се приемат, дори да бъдат изпратени.
+// Държи заявката далеч от лимита на Vercel (4.5 MB) и базата - компактна.
+const MAX_PHOTOS = 2;
+
 async function getRequestBody(req) {
   if (req.body) return req.body;
   const buffers = [];
@@ -412,7 +416,17 @@ export default async function handler(request, response) {
 
   try {
     const body = await getRequestBody(request);
-    const { citizenName, citizenPhone, citizenEmail, rawDescription, imageUrl, latitude, longitude, locationAccuracy } = body;
+    const { citizenName, citizenPhone, citizenEmail, rawDescription, imageUrl, imageUrls, latitude, longitude, locationAccuracy } = body;
+
+    // Снимки: новият фронтенд праща imageUrls (до 2), старият - само imageUrl.
+    // Приемаме и двете, за да работи дори при кеширана стара страница.
+    const photos = (Array.isArray(imageUrls) ? imageUrls : [])
+      .concat(imageUrl ? [imageUrl] : [])
+      .map(src => (typeof src === 'string' ? src.trim() : ''))
+      .filter(Boolean)
+      .filter((src, index, all) => all.indexOf(src) === index) // без дубликати
+      .slice(0, MAX_PHOTOS);
+    const primaryPhoto = photos[0] || null;
 
     if (!citizenName || !citizenEmail || !rawDescription) {
       return response.status(400).json({ error: 'Име, имейл и описание са задължителни по АПК.' });
@@ -717,7 +731,10 @@ if (shouldCheckTextAddress) {
         citizen_phone: citizenPhone || null,
         citizen_email: citizenEmail,
         raw_description: rawDescription, 
-        image_url: imageUrl || null,
+        // image_url пази ПЪРВАТА снимка както досега (старите сигнали и всеки
+        // стар код продължават да работят), а image_urls - целия списък.
+        image_url: primaryPhoto,
+        image_urls: photos.length ? photos : null,
         corrected_text: structuredData.corrected_text,
         location: structuredData.location || geoAddress,
         assigned_institution: structuredData.assigned_institution,
@@ -771,29 +788,32 @@ if (shouldCheckTextAddress) {
         // Изграждане на Magic Link за управление през официалния домейн
         const magicLink = `https://signaliplovdiv.org/?manage=${signalId}&token=${ownerToken}`;
 
-        // ПОДГОТОВКА НА ПРИКАЧЕНИЯ ФАЙЛ ЗА RESEND
-        let emailAttachments = [];
-        if (imageUrl) {
-          if (imageUrl.startsWith('data:')) {
-            const parts = imageUrl.split(';base64,');
+        // ПОДГОТОВКА НА ПРИКАЧЕНИТЕ ФАЙЛОВЕ ЗА RESEND (до 2 снимки).
+        // При една снимка името остава без номер - точно както досега.
+        const emailAttachments = [];
+        photos.forEach((photo, index) => {
+          const suffix = photos.length > 1 ? `_${index + 1}` : '';
+
+          if (photo.startsWith('data:')) {
+            const parts = photo.split(';base64,');
             if (parts.length === 2) {
               const contentType = parts[0].split(':')[1];
               const base64Content = parts[1].replace(/[\r\n\s]/g, '');
               const extension = contentType.split('/')[1] || 'jpg';
 
               emailAttachments.push({
-                filename: `photo_evidence_${signalId}.${extension}`,
+                filename: `photo_evidence_${signalId}${suffix}.${extension}`,
                 content: base64Content
               });
             }
           } else {
-            // Ако imageUrl е директен уеб адрес (например от Supabase Storage)
+            // Ако снимката е директен уеб адрес (например от Supabase Storage)
             emailAttachments.push({
-              filename: `photo_evidence_${signalId}.jpg`,
-              path: imageUrl
+              filename: `photo_evidence_${signalId}${suffix}.jpg`,
+              path: photo
             });
           }
-        }
+        });
  
         // 1. ИМЕЙЛ ДО ГРАЖДАНИНА (ПОТВЪРЖДЕНИЕ)
         await resend.emails.send({
@@ -817,7 +837,7 @@ if (shouldCheckTextAddress) {
                 <h4 style="margin-top: 0; color: #4f46e5; margin-bottom: 5px;">Вашето описание:</h4>
                 <p style="font-style: italic; margin-bottom: 0; color: #475569;">"${rawDescription}"</p>
               </div>
-              ${imageUrl ? `
+              ${photos.length ? `
                 <div style="margin-top: 15px; margin-bottom: 15px; padding: 10px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;">
                   <p style="margin: 0; font-size: 13px; color: #1e293b;"><strong>Към имейла е прикачено изпратеното от Вас фотодоказателство.</strong></p>
                 </div>
@@ -905,7 +925,7 @@ if (shouldCheckTextAddress) {
               <h3 style="color: #0f172a; margin-top: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px;">ПРАВЕН ТЕКСТ НА ЖАЛБАТА:</h3>
               <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #0f172a; border: 1px solid #e2e8f0;">${structuredData.official_letter}</pre>
               
-              ${imageUrl ? `
+              ${photos.length ? `
                 <div style="margin-top: 15px; margin-bottom: 15px; padding: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                   <p style="margin: 0; font-weight: bold; color: #166534;"> Към писмото е прикачено фотодоказателство от мястото на събитието.</p>
                 </div>
