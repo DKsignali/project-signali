@@ -244,6 +244,42 @@ export function resolveDistrictFromGeo(address, displayName) {
   return resolveDistrictKey(displayName);
 }
 
+// Синоними: ИИ понякога връща близък по смисъл, но несъществуващ ключ
+// (напр. "illegal_dumping" вместо "waste"). Без тази таблица такъв отговор
+// се приемаше за "няма категория" и писмото тръгваше БЕЗ копие до
+// съответното общинско предприятие - мълчаливо, без следа в логовете.
+const CATEGORY_SYNONYMS = {
+  // Отпадъци и чистота
+  illegal_dumping: 'waste', dumping: 'waste', garbage: 'waste', trash: 'waste',
+  rubbish: 'waste', litter: 'waste', cleanliness: 'waste', отпадъци: 'waste',
+  смет: 'waste', сметище: 'waste', чистота: 'waste',
+  // Улично осветление
+  lighting: 'street_lighting', street_light: 'street_lighting',
+  streetlight: 'street_lighting', lamp: 'street_lighting', осветление: 'street_lighting',
+  // Паркиране
+  parking: 'illegal_parking', wrong_parking: 'illegal_parking',
+  parking_violation: 'illegal_parking', паркиране: 'illegal_parking',
+  // Изоставени автомобили
+  abandoned_car: 'abandoned_vehicles', abandoned_cars: 'abandoned_vehicles',
+  // Пътна инфраструктура
+  road: 'road_infrastructure', roads: 'road_infrastructure',
+  road_damage: 'road_infrastructure', pothole: 'road_infrastructure',
+  potholes: 'road_infrastructure', sidewalk: 'road_infrastructure',
+  pavement: 'road_infrastructure', infrastructure: 'road_infrastructure',
+  дупка: 'road_infrastructure', тротоар: 'road_infrastructure',
+  // ВиК
+  water: 'water_sewage', sewage: 'water_sewage', sewer: 'water_sewage',
+  vik: 'water_sewage', вик: 'water_sewage',
+  // Зелени площи
+  green: 'green_areas', greenery: 'green_areas', park: 'green_areas',
+  parks: 'green_areas', trees: 'green_areas', tree: 'green_areas',
+  // Животни и вредители
+  animals: 'stray_animals', stray_dogs: 'stray_animals', dogs: 'stray_animals',
+  pests: 'pests_disinfection', insects: 'pests_disinfection',
+  // Шум и ред
+  noise: 'public_order', order: 'public_order', шум: 'public_order',
+};
+
 export function resolveCategoryKey(input) {
   const text = normalize(input);
   if (!text) return null;
@@ -251,7 +287,9 @@ export function resolveCategoryKey(input) {
   for (const [key, def] of Object.entries(CATEGORIES)) {
     if (normalize(def.label) === text) return key;
   }
-  return null;
+  // Последен опит: познат синоним на валиден ключ.
+  const synonym = CATEGORY_SYNONYMS[text.replace(/[\s-]+/g, '_')];
+  return synonym || null;
 }
 
 export function resolveEnterpriseEmail(input) {
