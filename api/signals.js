@@ -163,11 +163,23 @@ function buildGeocodeAttempts(address) {
   if (!street && !quarter) return [];
 
   const attempts = [];
-  const add = (mode, text) => {
-    if (text && !attempts.some(a => a.mode === mode && a.text === text)) attempts.push({ mode, text });
+  // expect - името, което ТРЯБВА да се срещне в отговора на геокодера.
+  // При свободен текст той налучква: за "Царевец, Христо Ботев" върна
+  // ул. Варшава в кв. Каменица 2 и я прие за точен адрес, защото проверката
+  // за име важеше само при търсене по улица. Сега важи навсякъде - а когато
+  // нищо не издържи проверката, районът остава неопределен и преписката
+  // отива в Община Пловдив, вместо сигналът да влезе в грешно кметство.
+  // expectArea разрешава съвпадението да е по името на КВАРТАЛА, не само
+  // на улицата - там се търсят и кварталните полета на отговора.
+  const add = (mode, text, expect, expectArea = false) => {
+    if (text && !attempts.some(a => a.mode === mode && a.text === text)) {
+      attempts.push({ mode, text, expect: expect || text, expectArea });
+    }
   };
 
-  if (street && quarter) add('q', `${street}${number ? ' ' + number : ''}, ${quarter}`);
+  if (street && quarter) {
+    add('q', `${street}${number ? ' ' + number : ''}, ${quarter}`, `${street} ${quarter}`, true);
+  }
   if (street && number) add('street', `${street} ${number}`);
   if (street) {
     add('street', street);
@@ -182,13 +194,13 @@ function buildGeocodeAttempts(address) {
     }
   }
   if (quarter) {
-    if (block) add('q', `жк ${quarter} ${block}`);
-    add('q', `жк ${quarter}`);
+    if (block) add('q', `жк ${quarter} ${block}`, quarter, true);
+    add('q', `жк ${quarter}`, quarter, true);
     // Някои квартали са записани в картата без представка ("Кючук Париж"),
     // затова накрая пробваме и само името.
-    add('q', quarter);
+    add('q', quarter, quarter, true);
   }
-  if (street) add('q', street);
+  if (street) add('q', street, street);
   return attempts;
 }
 
@@ -222,25 +234,34 @@ function classifyMatch(result, attempt) {
     return null;
   }
 
-  // За търсене по улица - върнатият обект трябва наистина да носи търсеното
-  // име, а не да е произволно близко съвпадение.
-  if (attempt.mode === 'street') {
+  // Квартал/район е ПРИБЛИЗИТЕЛНО съвпадение - геокодерът често отговаря на
+  // "Кючук Париж" с обхващащия го "Район Южен", в който името на квартала
+  // изобщо не се среща. Такъв отговор е полезен: слага сигнала в правилния
+  // район и никога не измества маркер. Затова проверката за име важи само за
+  // ТОЧНИТЕ съвпадения - там, където грешката би изглеждала като сигурен
+  // адрес (ул. Варшава вместо ул. Царевец).
+  const isArea = String(result.class || '').toLowerCase() === 'boundary'
+    || AREA_LEVEL_TYPES.has(type) || AREA_LEVEL_TYPES.has(addressType);
+
+  // Върнатият обект трябва наистина да носи търсеното име, а не да е
+  // произволно близко съвпадение. Достатъчна е ЕДНА от търсените думи -
+  // проверката пази от явно чужд резултат, не придирва към изписването.
+  if (!isArea && attempt.expect) {
     // ВАЖНО: името се търси САМО в полетата на самата улица. display_name
     // носи и името на района ("бл. 1, Район Тракия, Пловдив") - заради него
     // "ул. Тракия 1" се връзваше към блок в жк Тракия вместо към ул. Тракия
     // в Централен и писмото тръгваше към грешното районно кметство.
     const haystack = [addr.road, addr.pedestrian, addr.footway, addr.path, addr.square, result.name]
+      .concat(attempt.expectArea
+        ? [addr.suburb, addr.neighbourhood, addr.quarter, addr.city_district]
+        : [])
       .filter(Boolean).join(' ').toLowerCase();
-    const nameTokens = attempt.text.toLowerCase().split(/\s+/)
+    const nameTokens = String(attempt.expect).toLowerCase().split(/\s+/)
       .filter(token => token.length >= 3 && !/^\d/.test(token));
     if (!nameTokens.length || !nameTokens.some(token => haystack.includes(token))) return null;
   }
 
-  if (String(result.class || '').toLowerCase() === 'boundary'
-      || AREA_LEVEL_TYPES.has(type) || AREA_LEVEL_TYPES.has(addressType)) {
-    return 'area';
-  }
-  return 'precise';
+  return isArea ? 'area' : 'precise';
 }
 
 // Безплатният план на LocationIQ позволява ~2 заявки/сек. Каскадата прави
