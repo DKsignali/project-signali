@@ -225,8 +225,11 @@ function classifyMatch(result, attempt) {
   // За търсене по улица - върнатият обект трябва наистина да носи търсеното
   // име, а не да е произволно близко съвпадение.
   if (attempt.mode === 'street') {
-    const displayHead = String(result.display_name || '').split(',').slice(0, 2).join(' ');
-    const haystack = [addr.road, addr.pedestrian, addr.footway, addr.path, addr.square, result.name, displayHead]
+    // ВАЖНО: името се търси САМО в полетата на самата улица. display_name
+    // носи и името на района ("бл. 1, Район Тракия, Пловдив") - заради него
+    // "ул. Тракия 1" се връзваше към блок в жк Тракия вместо към ул. Тракия
+    // в Централен и писмото тръгваше към грешното районно кметство.
+    const haystack = [addr.road, addr.pedestrian, addr.footway, addr.path, addr.square, result.name]
       .filter(Boolean).join(' ').toLowerCase();
     const nameTokens = attempt.text.toLowerCase().split(/\s+/)
       .filter(token => token.length >= 3 && !/^\d/.test(token));
@@ -390,6 +393,32 @@ async function checkEmailQuota(email) {
 // Повече от толкова снимки не се приемат, дори да бъдат изпратени.
 // Държи заявката далеч от лимита на Vercel (4.5 MB) и базата - компактна.
 const MAX_PHOTOS = 2;
+
+// -----------------------------------------------------------------------------
+// ЗАЩИТА НА ПИСМАТА ОТ ВХОДА НА ГРАЖДАНИНА
+// -----------------------------------------------------------------------------
+// Името, описанието и отговорът на ИИ се вграждат в HTML на двете писма и в
+// заглавията им. Без обработка те могат да развалят оформлението на писмото
+// или да вкарат подвеждащ текст, който изглежда част от официалното съобщение.
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// В полето From: и в заглавието ъгловите скоби, кавичките, запетаите и точките
+// и запетаите се четат като разделител на адреси - име от вида
+// "Иван <chuzhd-adres@primer.com>" даваше ДВА адреса в един header.
+function sanitizeHeader(value) {
+  return String(value == null ? '' : value)
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/["<>;,]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 async function getRequestBody(req) {
   if (req.body) return req.body;
@@ -827,6 +856,17 @@ if (shouldCheckTextAddress) {
           }
         });
  
+        // Входът на гражданина и отговорът на ИИ - подготвени за вграждане.
+        const safeName        = escapeHtml(citizenName);
+        const safeEmail       = escapeHtml(citizenEmail);
+        const safePhone       = escapeHtml(citizenPhone || 'Не е предоставен');
+        const safeDescription = escapeHtml(rawDescription);
+        const safeLetter      = escapeHtml(structuredData.official_letter);
+        const safeAiLocation  = escapeHtml(structuredData.location);
+        // Име за полето From: и за заглавието - без знаците, които се четат
+        // като адрес. Ако не остане нищо, подателят се нарича неутрално.
+        const headerName      = sanitizeHeader(citizenName) || 'Гражданин';
+
         // 1. ИМЕЙЛ ДО ГРАЖДАНИНА (ПОТВЪРЖДЕНИЕ)
         await resend.emails.send({
           from: 'Сигнали Пловдив <no-reply@signaliplovdiv.org>', // Смени с официален мейл след покупка на домейн
@@ -835,7 +875,7 @@ if (shouldCheckTextAddress) {
           attachments: emailAttachments, // Прикачваме снимката като реален файл
           html: `
             <div style="font-family: sans-serif; max-width: 600px; color: #334155; line-height: 1.6;">
-              <h2 style="color: #1e1b4b; margin-bottom: 5px;">Здравейте, ${citizenName}!</h2>
+              <h2 style="color: #1e1b4b; margin-bottom: 5px;">Здравейте, ${safeName}!</h2>
               <p style="margin-top: 0;">Благодарим Ви за активната гражданска позиция.</p>
               <p>Вашият сигнал беше успешно заведен под <strong>№${signalId}</strong> в градската система и беше изпратен към съответната институция по служебен път.</p>
               <div style="text-align: center; margin: 25px 0;">
@@ -847,7 +887,7 @@ if (shouldCheckTextAddress) {
 
               <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #4f46e5; margin: 20px 0; border-radius: 4px;">
                 <h4 style="margin-top: 0; color: #4f46e5; margin-bottom: 5px;">Вашето описание:</h4>
-                <p style="font-style: italic; margin-bottom: 0; color: #475569;">"${rawDescription}"</p>
+                <p style="font-style: italic; margin-bottom: 0; color: #475569;">"${safeDescription}"</p>
               </div>
               ${photos.length ? `
                 <div style="margin-top: 15px; margin-bottom: 15px; padding: 10px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;">
@@ -858,7 +898,7 @@ if (shouldCheckTextAddress) {
               <p>Платформата преформатира сигнала Ви в правно-юридически документ съобразно изискванията на <strong>чл. 107-111 от Административнопроцесуалния кодекс (АПК)</strong>.</p>
               
               <h4 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-top: 25px;">Генериран документ към Общината:</h4>
-              <pre style="background-color: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 11px; font-family: monospace; white-space: pre-wrap; color: #1e293b;">${structuredData.official_letter}</pre>
+              <pre style="background-color: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 11px; font-family: monospace; white-space: pre-wrap; color: #1e293b;">${safeLetter}</pre>
               
               <p style="font-size: 11px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
                 Това е автоматично системно съобщение от Гражданския инкубатор "Сигнали Пловдив". Моля, не отговаряйте директно на този имейл.
@@ -893,7 +933,7 @@ if (shouldCheckTextAddress) {
         const cleanLocation = String(locationInfo).replace(/[\r\n]/g, ' ');
 
         await resend.emails.send({
-          from: `${citizenName} (през Сигнали Пловдив) <no-reply@signaliplovdiv.org>`,
+          from: `${headerName} (през Сигнали Пловдив) <no-reply@signaliplovdiv.org>`,
           to: routing.to,                                   // масив от адреси (Resend формат)
           ...(routing.cc.length > 0 ? { cc: routing.cc } : {}), // Cc се подава само ако има район
 
@@ -902,7 +942,7 @@ if (shouldCheckTextAddress) {
           attachments: emailAttachments, // Прикачваме снимката като реален файл
 
           // ЗАГЛАВИЕ ПО ФОРМУЛАТА НА АПК ЗА ДЪРЖАВНАТА АДМИНИСТРАЦИЯ
-          subject: `[СИГНАЛ по чл. 107 от АПК] Относно: ${cleanCategory} – ${cleanLocation} (Подател: ${citizenName})`,
+          subject: `[СИГНАЛ по чл. 107 от АПК] Относно: ${cleanCategory} – ${cleanLocation} (Подател: ${headerName})`,
           html: `
             <div style="font-family: sans-serif; max-width: 650px; color: #1e293b; line-height: 1.6;">
               <p><strong>УВАЖАЕМИ ДАМИ И ГОСПОДА,</strong></p>
@@ -910,10 +950,10 @@ if (shouldCheckTextAddress) {
               
               <div style="background-color: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
                 <strong style="color: #0f172a;">Официални данни за контакт с подателя:</strong><br>
-                <strong>• Три имена:</strong> ${citizenName}<br>
-                <strong>• Имейл адрес:</strong> <a href="mailto:${citizenEmail}">${citizenEmail}</a><br>
-                <strong>• Телефон за връзка:</strong> ${citizenPhone || 'Не е предоставен'}<br>
-                <strong>• Локация по ИИ:</strong> ${structuredData.location}<br>
+                <strong>• Три имена:</strong> ${safeName}<br>
+                <strong>• Имейл адрес:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a><br>
+                <strong>• Телефон за връзка:</strong> ${safePhone}<br>
+                <strong>• Локация по ИИ:</strong> ${safeAiLocation}<br>
                 <strong>• Категория:</strong> ${routing.resolution.categoryLabel || 'Неопределена'}<br>
                 <strong>• Район:</strong> ${routing.resolution.districtLabel || 'Неопределен'}<br>
                 <strong>• Вид на улицата:</strong> ${routing.resolution.streetType === 'boulevard' ? 'Главен булевард' : 'Местна улица'}<br>
@@ -935,7 +975,7 @@ if (shouldCheckTextAddress) {
               ` : ''}
 
               <h3 style="color: #0f172a; margin-top: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px;">ПРАВЕН ТЕКСТ НА ЖАЛБАТА:</h3>
-              <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #0f172a; border: 1px solid #e2e8f0;">${structuredData.official_letter}</pre>
+              <pre style="background: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #0f172a; border: 1px solid #e2e8f0;">${safeLetter}</pre>
               
               ${photos.length ? `
                 <div style="margin-top: 15px; margin-bottom: 15px; padding: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
