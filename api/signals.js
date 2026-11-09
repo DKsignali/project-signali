@@ -277,10 +277,41 @@ async function geocodeTextAddress(address) {
     }
     if (!Array.isArray(results)) results = [];
 
+    const accepted = [];
     for (const r of results) {
       if (!isInsidePlovdiv(r.lat, r.lon)) continue;
       const precision = classifyMatch(r, attempt);
       if (!precision) continue;
+      accepted.push({ r, precision });
+    }
+
+    // Когато номерът на сградата липсва в картата, геокодерът се връща към
+    // самата улица и връща ПРОИЗВОЛНА нейна отсечка. Улица като „Богомил"
+    // минава през три района - тогава отсечката решава в кое кметство отива
+    // писмото, а това е лотария. Затова, ако кандидатите за една и съща улица
+    // падат в различни райони, районът се смята за НЕОПРЕДЕЛЕН: по-добре
+    // преписката да отиде в Община Пловдив, която ще я препрати, отколкото да
+    // влезе в деловодството на грешно кметство. Проверката е върху вече
+    // получените резултати - не струва допълнителна заявка.
+    const tagged = attempt.mode === 'street'
+      ? accepted.map(({ r }) => ({ r, district: resolveDistrictFromGeo(r.address, r.display_name) }))
+                .filter(x => x.district)
+      : [];
+    const districtsSeen = [...new Set(tagged.map(x => x.district))];
+    let streetSpansDistricts = false;
+    if (districtsSeen.length > 1) {
+      for (const a of tagged) {
+        for (const b of tagged) {
+          if (a.district === b.district) continue;
+          const apart = distanceMeters(parseFloat(a.r.lat), parseFloat(a.r.lon),
+                                       parseFloat(b.r.lat), parseFloat(b.r.lon));
+          if (apart > DISTRICT_AMBIGUITY_RADIUS_M) streetSpansDistricts = true;
+        }
+      }
+    }
+
+    for (const { r, precision } of accepted) {
+      const matchedHouseNumber = Boolean(r.address && r.address.house_number);
       const match = {
         lat: parseFloat(r.lat),
         lng: parseFloat(r.lon),
@@ -288,6 +319,10 @@ async function geocodeTextAddress(address) {
         displayName: r.display_name,
         query: attempt.text,
         precision,
+        // Намерена е конкретна сграда -> районът ѝ е сигурен.
+        // Намерена е само улицата, а тя се простира в няколко района -> не е.
+        districtAmbiguous: !matchedHouseNumber && streetSpansDistricts,
+        districtCandidates: districtsSeen,
       };
       if (precision === 'precise') return match;
       if (!areaFallback) areaFallback = match;
@@ -319,6 +354,12 @@ const GEOLOCATION_APPROXIMATE_M = 100;
 // улицата. Затова маркерът се заменя само при ИСТИНСКО разминаване - когато
 // двете места са на повече от този радиус едно от друго.
 const ADDRESS_CONFLICT_RADIUS_M = 300;
+
+// Улица покрай граница между два района дава различни етикети на съседните си
+// отсечки - това е безобидно, защото мястото е едно и също. Същинско съмнение
+// има само когато отсечките с различен район са и ДАЛЕЧ една от друга: тогава
+// изборът на отсечка мести сигнала в друга част на града.
+const DISTRICT_AMBIGUITY_RADIUS_M = 500;
 
 // Разстояние между две точки в метри (haversine).
 function distanceMeters(lat1, lon1, lat2, lon2) {
@@ -667,7 +708,14 @@ if (shouldCheckTextAddress) {
       if (match) {
         const { lat: foundLat, lng: foundLng, query: matchedQuery, precision } = match;
         // Районът, определен от НАМЕРЕНИЯ адрес - важи, когато той замени маркера.
-        const textDistrict = resolveDistrictFromGeo(match.address, match.displayName);
+        const textDistrict = match.districtAmbiguous
+          ? null
+          : resolveDistrictFromGeo(match.address, match.displayName);
+        if (match.districtAmbiguous) {
+          console.warn(`[ЛОКАЦИЯ] "${match.query}" попада в повече от един район `
+            + `(${match.districtCandidates.join(', ')}) - районът остава неопределен `
+            + 'и преписката отива в Община Пловдив.');
+        }
 
         if (!hasPin) {
           // Няма маркер - писаният адрес е единственият източник

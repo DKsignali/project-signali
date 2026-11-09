@@ -179,14 +179,35 @@ const INSTITUTION_INDEX = new Map(
  *
  * @returns {'boulevard'|'local'}
  */
+// Квартали и райони носят същите имена като главни булеварди - „Христо Ботев",
+// „Марица", „Северен", „Дунав". Ако името на булевард се търси в ЦЕЛИЯ адрес,
+// „ул. Царевец, кв. Христо Ботев" минава за булевард и районното кметство
+// отпада от получателите. Затова сегментите за квартал и район се отделят,
+// преди да се решава какъв е видът на улицата.
+const AREA_SEGMENT_MARKERS = new Set([
+  'жк', 'жк.', 'ж.к', 'ж.к.', 'кв', 'кв.', 'квартал', 'комплекс', 'район',
+]);
+
+export function stripAreaSegments(location) {
+  return String(location == null ? '' : location)
+    .split(/[,;()]+/)
+    .filter(segment => {
+      const first = normalize(segment).split(/\s+/).filter(Boolean)[0];
+      return !(first && AREA_SEGMENT_MARKERS.has(first));
+    })
+    .join(', ');
+}
+
 export function classifyStreet(location, aiHint) {
-  const tokens = tokenize(location);
+  // Гледа се само частта с улицата - виж stripAreaSegments() по-горе.
+  const streetPart = stripAreaSegments(location);
+  const tokens = tokenize(streetPart);
 
   // 1) Изрична представка в адреса - най-надеждният признак.
   if (tokens.some(t => BOULEVARD_TOKENS.has(t))) return 'boulevard';
 
   // 2) Известен главен булевард, изписан без представка.
-  const text = normalize(location);
+  const text = normalize(streetPart);
   if (MAJOR_BOULEVARDS.some(name => text.includes(name))) return 'boulevard';
 
   // 3) Изрично "ул." -> местна улица.
