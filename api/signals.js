@@ -910,15 +910,15 @@ if (shouldCheckTextAddress) {
               
               <div style="background-color: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
                 <strong style="color: #0f172a;">Официални данни за контакт с подателя:</strong><br>
-                <strong>• Три имена:</strong> ${citizenName}<br>
-                <strong>• Имейл адрес:</strong> <a href="mailto:${citizenEmail}">${citizenEmail}</a><br>
-                <strong>• Телефон за връзка:</strong> ${citizenPhone || 'Не е предоставен'}<br>
-                <strong>• Локация по ИИ:</strong> ${structuredData.location}<br>
-                <strong>• Категория:</strong> ${routing.resolution.categoryLabel || 'Неопределена'}<br>
-                <strong>• Район:</strong> ${routing.resolution.districtLabel || 'Неопределен'}<br>
-                <strong>• Вид на улицата:</strong> ${routing.resolution.streetType === 'boulevard' ? 'Главен булевард' : 'Местна улица'}<br>
-                <strong>• Компетентен орган (адресат):</strong> ${routing.resolution.authorityLabel || 'Община Пловдив'}<br>
-                <strong>• Уведомено предприятие (копие):</strong> ${routing.resolution.enterpriseLabel || 'Няма – дейността се извършва от администрацията'}
+                <strong>Три имена:</strong> ${citizenName}<br>
+                <strong>Имейл адрес:</strong> <a href="mailto:${citizenEmail}">${citizenEmail}</a><br>
+                <strong>Телефон за връзка:</strong> ${citizenPhone || 'Не е предоставен'}<br>
+                <strong>Локация:</strong> ${structuredData.location}<br>
+                <strong>Категория:</strong> ${routing.resolution.categoryLabel || 'Неопределена'}<br>
+                <strong>Район:</strong> ${routing.resolution.districtLabel || 'Неопределен'}<br>
+                <strong>Вид на улицата:</strong> ${routing.resolution.streetType === 'boulevard' ? 'Главен булевард' : 'Местна улица'}<br>
+                <strong>Компетентен орган (адресат):</strong> ${routing.resolution.authorityLabel || 'Община Пловдив'}<br>
+                <strong>Уведомено предприятие (копие):</strong> ${routing.resolution.enterpriseLabel || 'Няма – дейността се извършва от администрацията'}
               </div>
 
               ${routing.resolution.overrideActive ? `
