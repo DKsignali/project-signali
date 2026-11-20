@@ -238,9 +238,15 @@ function classifyMatch(result, attempt) {
   // в с. Крумово, община Родопи. Затова изискваме населеното място да е
   // самият град. Ако геокодерът не е върнал населено място, разчитаме на
   // проверката за границите на картата.
+  // Търси се ИМЕТО, не точно съвпадение: геокодерите изписват населеното
+  // място различно - "Пловдив", "Община Пловдив", понякога на латиница.
+  // Изискването за буквално "пловдив" отхвърляше напълно валидни адреси в
+  // града: "ул. Студенец 19" се връщаше с road="Студенец" и верни координати
+  // и въпреки това падаше тук.
   const addr = result.address || {};
   const place = addr.city || addr.town || addr.village || addr.municipality;
-  if (place && String(place).trim().toLowerCase() !== 'пловдив') {
+  const placeText = String(place == null ? '' : place).trim().toLowerCase();
+  if (placeText && !placeText.includes('пловдив') && !placeText.includes('plovdiv')) {
     return null;
   }
 
@@ -392,9 +398,12 @@ async function geocodeTextAddress(address) {
       // от лога трябва да личи ЗАЩО, без да се гадае кое поле липсва.
       console.warn(`[ГЕО] Няма точно съвпадение за "${attempt.text}" сред:`,
         results.map(r => `${r.class}/${r.type}@${r.lat},${r.lon}`
-          + ` road="${(r.address && r.address.road) || ''}"`
+          + ` atype="${r.addresstype || ''}"`
           + ` name="${r.name || ''}"`
-          + ` display="${String(r.display_name || '').split(',')[0]}"`).join(' | '));
+          + ` display="${String(r.display_name || '').split(',')[0]}"`
+          // Целият адресен обект: без него не се вижда ЗАЩО е отхвърлен -
+          // дали заради населеното място, заради типа или заради името.
+          + ` addr=${JSON.stringify(r.address || {})}`).join(' | '));
     }
   }
   return areaFallback;
