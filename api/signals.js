@@ -525,6 +525,16 @@ function sanitizeHeader(value) {
     .trim();
 }
 
+// Съкращава текст до кратко название за заглавието на писмото, без да реже
+// дума наполовина.
+function shortTopic(text) {
+  const clean = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  if (clean.length <= 70) return clean;
+  const cut = clean.slice(0, 70);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 25 ? cut.slice(0, lastSpace) : cut) + '…';
+}
+
 async function getRequestBody(req) {
   if (req.body) return req.body;
   const buffers = [];
@@ -681,8 +691,12 @@ export default async function handler(request, response) {
   * Сглоби адреса красиво, ясно и прецизно.
 - Ниво на спешност (priority) – избери точно едно от: 'Low', 'Medium', 'High'.
 - Отговорна институция (assigned_institution) – избери най-подходящата от следните: 'ОП Чистота', 'ОП Градини и паркове', 'ОП Организация и контрол на транспорта', 'ОП Паркиране и репатриране', 'Пловдивски общински инспекторат (ПОИ)', 'Район Централен', 'Район Южен', 'Район Северен', 'Район Западен', 'Район Източен', 'Район Тракия', 'Община Пловдив'.
+  * При незаконни постройки, навеси, огради и гаражни клетки избери СЪОТВЕТНОТО РАЙОННО КМЕТСТВО (неговият отдел „Контрол по строителството" съставя констативните актове и издава заповедите за премахване по чл. 57а и чл. 225а от ЗУТ). Ако районът не може да бъде определен, избери 'Пловдивски общински инспекторат (ПОИ)'. КАТЕГОРИЧНО не избирай общинско предприятие - предприятията не актуват и не премахват незаконни строежи.
 - Категория на проблема (category) – избери ТОЧНО един от следните ключове (връщай самия ключ на латиница, не описанието):
 ${CATEGORY_KEYS.map(key => `  * '${key}' – ${CATEGORIES[key].label}`).join('\n')}
+  * Ако проблемът НЕ попада ЯСНО в нито една от категориите, върни 'other'. КАТЕГОРИЧНО не избирай "най-близката по смисъл" - сгрешена категория праща копие до предприятие, което не отговаря за проблема, и обърква преписката.
+  * Незаконно поставени гаражни клетки, навеси, метални постройки, бараки и огради се водят 'illegal_construction'. Те се актуват и премахват от РАЙОННАТА администрация по чл. 57а и чл. 225а от Закона за устройство на територията, а не от общинско предприятие. Използвай този ключ дори описанието да споменава тревни площи, сгради или паркиране.
+- Кратко название на проблема (problem_summary) – от 2 до 5 думи на български, с главна буква, БЕЗ адрес, БЕЗ имена и БЕЗ точка в края. Това название влиза в заглавието на официалното писмо до институцията, затова трябва да е конкретно и веднага разбираемо за деловодител. Примери: 'Непремахнати гаражни клетки', 'Спукан водопровод и течаща вода', 'Паднали клони след буря', 'Неработещо улично осветление'. КАТЕГОРИЧНО не връщай общи думи като 'Друго', 'Сигнал', 'Проблем' или 'Градска неизправност'.
 - Район на инцидента (district) – избери точно едно от: ${DISTRICT_LABELS.map(d => `'${d}'`).join(', ')}.
   * Определи района по адреса/квартала в Пловдив. Ако районът НЕ може да бъде установен със сигурност, върни празен низ "" – КАТЕГОРИЧНО не гадай.
 - Вид на уличната мрежа (street_class) – върни 'boulevard', ако проблемът е на ГЛАВЕН БУЛЕВАРД (компетентна е Община Пловдив), или 'local', ако е на местна улица, тротоар или в квартал (компетентно е районното кметство). При съмнение върни 'local'.
@@ -702,6 +716,7 @@ ${CATEGORY_KEYS.map(key => `  * '${key}' – ${CATEGORIES[key].label}`).join('\n
   "location": "крайният сглобен адрес (улица, номер, квартал)",
   "assigned_institution": "избраната институция от стъпка 2",
   "category": "избраният ключ на категорията от стъпка 2",
+  "problem_summary": "краткото название на проблема от стъпка 2",
   "district": "избраният район от стъпка 2 (или празен низ)",
   "street_class": "'boulevard' или 'local' от стъпка 2",
   "priority": "избраният приоритет от стъпка 2",
@@ -1035,9 +1050,29 @@ if (shouldCheckTextAddress) {
           throw new Error('Няма валиден получател за сигнала (провери MUNICIPALITY_FALLBACK_EMAIL).');
         }
 
-        // Автоматично извличане/подготовка на данните за професионалното заглавие по АПК
-        const categoryInfo = routing.resolution.categoryLabel
-          || (structuredData.corrected_text ? structuredData.corrected_text.substring(0, 30) + '...' : 'Градска неизправност');
+        // Автоматично извличане/подготовка на данните за професионалното заглавие по АПК.
+        //
+        // Заглавието НИКОГА не бива да гласи "Относно: Друго" - деловодителят
+        // трябва да вижда естеството на проблема от първия ред. Затова
+        // етикетът на категорията се ползва само когато е конкретен, а за
+        // "Друго" и за непозната категория се взема краткото название от ИИ.
+        const aiSummary = shortTopic(structuredData.problem_summary);
+        const summaryIsGeneric = !aiSummary
+          || /^(друго|сигнал|проблем|градска неизправност|неуточнен[оа]?)$/i.test(aiSummary);
+        // В копието вече може да има двама получатели с РАЗЛИЧНИ роли:
+        // предприятието отстранява проблема, ПОИ установява нарушението.
+        // Затова писмото изброява и двамата, а не говори за "изпълнител".
+        const ccLabels = [routing.resolution.enterpriseLabel, routing.resolution.inspectorateLabel]
+          .filter(Boolean).join(', ');
+
+        const specificCategory = routing.resolution.categoryKey
+          && routing.resolution.categoryKey !== 'other'
+            ? routing.resolution.categoryLabel
+            : null;
+        const categoryInfo = specificCategory
+          || (summaryIsGeneric ? null : aiSummary)
+          || shortTopic(structuredData.corrected_text)
+          || 'Градска неизправност';
         const locationInfo = structuredData.location || geoAddress;
 
         // КОРЕКЦИЯ: Изчистване на нови редове в заглавието за предотвратяване на SMTP грешки
@@ -1061,26 +1096,23 @@ if (shouldCheckTextAddress) {
               <p>По реда на <strong>Глава Осма (чл. 107-111) от Административнопроцесуалния кодекс (АПК)</strong>, Ви изпращаме електронен граждански сигнал, технически пренесен по искане и от името на подателя, свързан с градска неизправност в град Пловдив.</p>
               
               <div style="background-color: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
-                <strong style="color: #0f172a;">Официални данни за контакт с подателя:</strong><br>
+                <strong style="color: #0f172a;">Данни за подателя и за мястото на сигнала:</strong><br>
                 <strong>Три имена:</strong> ${safeName}<br>
                 <strong>Имейл адрес:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a><br>
                 <strong>Телефон за връзка:</strong> ${safePhone}<br>
-                <strong>Локация:</strong> ${safeAiLocation}<br>
-                <strong>Категория:</strong> ${routing.resolution.categoryLabel || 'Неопределена'}<br>
-                <strong>Район:</strong> ${routing.resolution.districtLabel || 'Неопределен'}<br>
-                <strong>Вид на улицата:</strong> ${routing.resolution.streetType === 'boulevard' ? 'Главен булевард' : 'Местна улица'}<br>
-                <strong>Компетентен орган (адресат):</strong> ${routing.resolution.authorityLabel || 'Община Пловдив'}<br>
-                <strong>Уведомено предприятие (копие):</strong> ${routing.resolution.enterpriseLabel || 'Няма – дейността се извършва от администрацията'}
+                <strong>Локация на проблема:</strong> ${safeAiLocation}
               </div>
 
               ${routing.resolution.overrideActive ? `
                 <div style="background-color:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:8px;margin:16px 0;font-size:12px;color:#78350f;">
                   <strong>⚠ ТЕСТОВ РЕЖИМ — това писмо НЕ е изпратено до Общината.</strong><br><br>
                   При реална експлоатация писмото щеше да бъде изпратено до:<br>
+                  <strong>Категория:</strong> ${routing.resolution.categoryLabel || 'Неопределена'}<br>
+                  <strong>Район:</strong> ${routing.resolution.districtLabel || 'Неопределен'}<br>
                   <strong>To (компетентен орган):</strong> ${routing.resolution.intendedTo || '—'}
                   ${routing.resolution.authorityLabel ? ` (${routing.resolution.authorityLabel})` : ''}<br>
-                  <strong>Cc (изпълнител):</strong> ${routing.resolution.intendedCc || '— няма'}
-                  ${routing.resolution.enterpriseLabel ? ` (${routing.resolution.enterpriseLabel})` : ''}<br>
+                  <strong>Cc (копие до):</strong> ${routing.resolution.intendedCc || '— няма'}
+                  ${ccLabels ? ` (${ccLabels})` : ''}<br>
                   <strong>Вид улица:</strong> ${routing.resolution.streetType === 'boulevard' ? 'главен булевард' : 'местна улица'}<br><br>
                   За включване на реалното насочване: <code>ROUTING_LIVE=true</code>
                 </div>

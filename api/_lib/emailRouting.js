@@ -55,6 +55,28 @@ export const CENTRAL_MUNICIPALITY = {
 // насочване - не се налага промяна в кода.
 export const TEST_MODE_RECIPIENT = 'dkbusiness901@gmail.com';
 
+// -----------------------------------------------------------------------------
+// ПЛОВДИВСКИ ОБЩИНСКИ ИНСПЕКТОРАТ (ПОИ) - контролен орган, отива в Cc
+// -----------------------------------------------------------------------------
+// ПОИ НЕ е изпълнител: той извършва проверки на място, съставя констативни
+// протоколи и актове за административни нарушения и налага глоби с фиш.
+// Затова получава копие САМО при категориите, които попадат в правомощията му
+// по Правилника за организацията и дейността на ПОИ (решение № 270 от
+// 14.07.2011 г. на Общински съвет - Пловдив):
+//   * контрол по опазване на околната среда и чистотата        -> waste
+//   * контрол по опазването на зелената система                 -> green_areas
+//   * контрол по осигуряване и опазване на обществения ред      -> public_order
+//   * контрол по опазването на общинската инфраструктура -
+//     тротоари, улични платна и др.                             -> road_infrastructure
+//   * контрол по поставянето на преместваеми обекти върху
+//     общинска собственост (чл. 56 и чл. 57 от ЗУТ)             -> illegal_construction
+// Другите категории имат свой изпълнител и ПОИ няма работа по тях - копие до
+// него би било само шум в пощата му.
+export const MUNICIPAL_INSPECTORATE = {
+  label: 'Пловдивски общински инспекторат (ПОИ)',
+  email: 'inspektorat@plovdiv.bg',
+};
+
 const DISTRICT_ALIASES = {
   centralen: ['централен', 'centralen', 'център', 'centar'],
   yuzhen:    ['южен', 'yuzhen', 'juzhen', 'south'],
@@ -94,17 +116,26 @@ export const CATEGORIES = {
   street_lighting:     { label: 'Улично осветление',               enterprise: 'okt' },
   illegal_parking:     { label: 'Неправилно паркиране',            enterprise: 'parkirane' },
   abandoned_vehicles:  { label: 'Изоставени автомобили',           enterprise: 'parkirane' },
-  waste:               { label: 'Отпадъци и чистота',              enterprise: 'chistota' },
-  green_areas:         { label: 'Зелени площи и паркове',          enterprise: 'gradini_parkove' },
+  waste:               { label: 'Отпадъци и чистота',              enterprise: 'chistota',        inspectorate: true },
+  green_areas:         { label: 'Зелени площи и паркове',          enterprise: 'gradini_parkove', inspectorate: true },
   stray_animals:       { label: 'Безстопанствени животни',         enterprise: 'zvk' },
   pests_disinfection:  { label: 'Вредители и дезинфекция',         enterprise: 'dezstancia' },
   markets:             { label: 'Общински пазари',                 enterprise: 'pazari' },
   cemeteries:          { label: 'Гробищни паркове',                enterprise: 'traurna' },
   municipal_housing:   { label: 'Общински жилища и сгради',        enterprise: 'jilfond' },
-  public_order:        { label: 'Шум и обществен ред',             enterprise: 'ohrana' },
-  road_infrastructure: { label: 'Пътна инфраструктура и тротоари', enterprise: null },
+  public_order:        { label: 'Шум и обществен ред',             enterprise: 'ohrana',          inspectorate: true },
+  road_infrastructure: { label: 'Пътна инфраструктура и тротоари', enterprise: null, inspectorate: true },
   water_sewage:        { label: 'ВиК проблеми',                    enterprise: null },
-  other:               { label: 'Друго',                           enterprise: null },
+  // districtOnly: районната администрация е и компетентен орган, И изпълнител.
+  // При такива категории НЕ се добавя копие до предприятие дори ИИ да е
+  // назовал такова - то само обърква преписката.
+  //
+  // Незаконните постройки се актуват и премахват от районното кметство по
+  // чл. 57а и чл. 225а от ЗУТ. Категорията съществува, за да не попадат
+  // такива сигнали в "Друго": заглавието на писмото трябва да казва от какво
+  // естество е проблемът, а не "Относно: Друго".
+  illegal_construction: { label: 'Незаконни постройки и гаражни клетки', enterprise: null, districtOnly: true, inspectorate: true },
+  other:               { label: 'Друго',                           enterprise: null, districtOnly: true },
 };
 
 // -----------------------------------------------------------------------------
@@ -299,6 +330,16 @@ const CATEGORY_SYNONYMS = {
   pests: 'pests_disinfection', insects: 'pests_disinfection',
   // Шум и ред
   noise: 'public_order', order: 'public_order', шум: 'public_order',
+  // Незаконни постройки и гаражни клетки
+  garage: 'illegal_construction', garages: 'illegal_construction',
+  illegal_building: 'illegal_construction', illegal_buildings: 'illegal_construction',
+  illegal_structure: 'illegal_construction', illegal_structures: 'illegal_construction',
+  illegal_garage: 'illegal_construction', illegal_garages: 'illegal_construction',
+  unauthorized_construction: 'illegal_construction', shed: 'illegal_construction',
+  гараж: 'illegal_construction', гаражи: 'illegal_construction',
+  гаражни_клетки: 'illegal_construction', незаконно_строителство: 'illegal_construction',
+  незаконни_постройки: 'illegal_construction', постройка: 'illegal_construction',
+  навес: 'illegal_construction', барака: 'illegal_construction', ограда: 'illegal_construction',
 };
 
 export function resolveCategoryKey(input) {
@@ -410,7 +451,15 @@ export function resolveRouting({
   }
 
   // Резервно: ОП по името, върнато от ИИ в assigned_institution.
-  if (!cc) {
+  //
+  // НО не при категория 'other'. Тя значи "нищо не пасва", а тогава
+  // компетентен е само административният орган и копие до предприятие само
+  // обърква преписката. Пример от практиката: за едни и същи незаконни
+  // гаражни клетки ИИ предложи веднъж „Градини и паркове“ (защото
+  // описанието спомена тревни площи), веднъж „Жилфонд“ (защото спомена
+  // метална постройка) и веднъж нищо - а премахването се извършва от
+  // районната администрация и в трите случая.
+  if (!cc && !(categoryDef && categoryDef.districtOnly)) {
     const byName = resolveEnterpriseEmail(assignedInstitution);
     if (byName) {
       cc = byName;
@@ -425,11 +474,34 @@ export function resolveRouting({
     enterpriseLabel = null;
   }
 
+  // ---- Cc: ПЛОВДИВСКИ ОБЩИНСКИ ИНСПЕКТОРАТ ---------------------------------
+  // Контролният орган се уведомява само по категориите от правомощията му -
+  // виж MUNICIPAL_INSPECTORATE по-горе. Той се добавя НЕЗАВИСИМО от това дали
+  // има предприятие-изпълнител: ролите са различни - предприятието отстранява
+  // проблема, ПОИ установява нарушението и съставя акт.
+  let inspectorateLabel = null;
+  const inspectorateEmail = categoryDef && categoryDef.inspectorate
+    && isValidEmail(MUNICIPAL_INSPECTORATE.email)
+      ? MUNICIPAL_INSPECTORATE.email.trim()
+      : null;
+
+  const ccList = [];
+  const pushCc = (email) => {
+    if (!email) return false;
+    const lower = email.toLowerCase();
+    if (to && lower === to.toLowerCase()) return false;          // вече е в To
+    if (ccList.some(a => a.toLowerCase() === lower)) return false; // вече е в Cc
+    ccList.push(email);
+    return true;
+  };
+  pushCc(cc);
+  if (pushCc(inspectorateEmail)) inspectorateLabel = MUNICIPAL_INSPECTORATE.label;
+
   const overrideActive = Boolean(overrideEmail && isValidEmail(overrideEmail));
 
   return {
     to: overrideActive ? [overrideEmail.trim()] : (to ? [to] : []),
-    cc: overrideActive ? [] : (cc ? [cc] : []),
+    cc: overrideActive ? [] : ccList,
     resolution: {
       categoryKey,
       categoryLabel: categoryDef ? categoryDef.label : null,
@@ -440,8 +512,9 @@ export function resolveRouting({
       authorityType,              // 'district' | 'central' | 'fallback' | null
       authorityLabel,             // кой орган образува преписката (To)
       enterpriseLabel,            // кое ОП е уведомено (Cc)
+      inspectorateLabel,          // ПОИ уведомен ли е (Cc)
       intendedTo: to,
-      intendedCc: cc,
+      intendedCc: ccList.length ? ccList.join(', ') : null,
       overrideActive,
       usedFallback: authorityType === 'fallback',
     },
