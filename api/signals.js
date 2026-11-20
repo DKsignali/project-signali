@@ -211,6 +211,16 @@ const CITY_LEVEL_TYPES = new Set([
 ]);
 // Квартал/район е ПРИБЛИЗИТЕЛНА локация: по-добре от нищо, когато няма
 // маркер ("в кв. Кючук Париж"), но никога не бива да измества маркер.
+// Типовете, с които геокодерът означава УЛИЦА. Нужни са, защото полето
+// "class" не се връща от всички геокодери, а само по него проверката щеше да
+// остане зависима от доставчика - точно капанът, който вече ни костваше
+// единайсет дни ненамерени адреси.
+const STREET_LEVEL_TYPES = new Set([
+  'residential', 'tertiary', 'secondary', 'primary', 'trunk', 'motorway',
+  'unclassified', 'living_street', 'pedestrian', 'footway', 'path', 'steps',
+  'service', 'road', 'street', 'track', 'cycleway',
+]);
+
 const AREA_LEVEL_TYPES = new Set([
   'suburb', 'quarter', 'neighbourhood', 'borough', 'city_district', 'district',
   'village', 'administrative',
@@ -243,10 +253,26 @@ function classifyMatch(result, attempt) {
   const isArea = String(result.class || '').toLowerCase() === 'boundary'
     || AREA_LEVEL_TYPES.has(type) || AREA_LEVEL_TYPES.has(addressType);
 
+  // Търсенето street= пита геокодера за УЛИЦА. Когато той отговори с улица,
+  // това е точно каквото сме поискали и името не се проверява.
+  // ЗАЩО: проверката гледа адресните полета на отговора, а различните
+  // геокодери пълнят различни полета. Nominatim връща улица с "road" и
+  // "name"; LocationIQ - не. Заради това от 09.11.2026 до 20.11.2026 всеки
+  // адрес, намерен само на ниво улица, беше отхвърлян в производството:
+  // "ул. Студенец 19" се връщаше с верните координати 42.1294123, 24.7287904
+  // и биваше изхвърлян три пъти подред. Проверката остава за всичко друго -
+  // за сгради и обекти, върнати на въпрос за улица ("ул. Тракия 1" даваше
+  // блок в жк Тракия), и за целия свободен текст ("Царевец, Христо Ботев"
+  // даваше ул. Варшава в кв. Каменица).
+  const isStreetAnswer = attempt.mode === 'street'
+    && (String(result.class || '').toLowerCase() === 'highway'
+      || STREET_LEVEL_TYPES.has(type)
+      || STREET_LEVEL_TYPES.has(addressType));
+
   // Върнатият обект трябва наистина да носи търсеното име, а не да е
   // произволно близко съвпадение. Достатъчна е ЕДНА от търсените думи -
   // проверката пази от явно чужд резултат, не придирва към изписването.
-  if (!isArea && attempt.expect) {
+  if (!isArea && !isStreetAnswer && attempt.expect) {
     // ВАЖНО: името се търси САМО в полетата на самата улица. display_name
     // носи и името на района ("бл. 1, Район Тракия, Пловдив") - заради него
     // "ул. Тракия 1" се връзваше към блок в жк Тракия вместо към ул. Тракия
@@ -266,10 +292,22 @@ function classifyMatch(result, attempt) {
 
 // Безплатният план на LocationIQ позволява ~2 заявки/сек. Каскадата прави
 // няколко последователни заявки, затова при 429 изчакваме и опитваме веднъж.
+// Каскадата праща опитите си плътно един след друг - в производството трите
+// заявки излизаха за 640 мс и се удряха в лимита за секунда. Затова се
+// разреждат. Променливата живее в рамките на един работен екземпляр, което е
+// точно обхватът на една каскада.
+const LOCATIONIQ_MIN_GAP_MS = 600;
+let locationIqLastCall = 0;
+
 async function locationIqFetch(url) {
+  const wait = locationIqLastCall + LOCATIONIQ_MIN_GAP_MS - Date.now();
+  if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+  locationIqLastCall = Date.now();
+
   let res = await fetch(url);
   if (res.status === 429) {
     await new Promise(resolve => setTimeout(resolve, 1100));
+    locationIqLastCall = Date.now();
     res = await fetch(url);
   }
   return res;
@@ -350,8 +388,13 @@ async function geocodeTextAddress(address) {
     }
 
     if (results.length) {
+      // Полетата се изписват нарочно: когато съвпадение бъде отхвърлено,
+      // от лога трябва да личи ЗАЩО, без да се гадае кое поле липсва.
       console.warn(`[ГЕО] Няма точно съвпадение за "${attempt.text}" сред:`,
-        results.map(r => `${r.type}@${r.lat},${r.lon}`).join(' | '));
+        results.map(r => `${r.class}/${r.type}@${r.lat},${r.lon}`
+          + ` road="${(r.address && r.address.road) || ''}"`
+          + ` name="${r.name || ''}"`
+          + ` display="${String(r.display_name || '').split(',')[0]}"`).join(' | '));
     }
   }
   return areaFallback;
