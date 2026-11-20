@@ -244,10 +244,26 @@ function classifyMatch(result, attempt) {
   // града: "ул. Студенец 19" се връщаше с road="Студенец" и верни координати
   // и въпреки това падаше тук.
   const addr = result.address || {};
+  const norm = value => String(value == null ? '' : value).trim().toLowerCase();
   const place = addr.city || addr.town || addr.village || addr.municipality;
-  const placeText = String(place == null ? '' : place).trim().toLowerCase();
+  const placeText = norm(place);
   if (placeText && !placeText.includes('пловдив') && !placeText.includes('plovdiv')) {
-    return null;
+    // LocationIQ понякога слага в "town" името на КВАРТАЛА, а не на града:
+    // за "ул. Студенец" връща suburb:"Въстанически" И town:"Въстанически",
+    // без изобщо да попълни "city". Улицата лежи на граница между квартали,
+    // заради което данните ѝ са противоречиви. Такъв отговор не сочи ДРУГО
+    // СЕЛИЩЕ и не бива да се отхвърля - иначе валиден пловдивски адрес остава
+    // без координати, както се случваше със сигнали 51-58.
+    const sameAsQuarter = [addr.suburb, addr.neighbourhood, addr.quarter, addr.city_district]
+      .map(norm).filter(Boolean).includes(placeText);
+
+    // Вторият признак е независим от имената на полетата: ако отговорът носи
+    // разпознаваем ПЛОВДИВСКИ район ("Южен", "Район Западен"), точката е в
+    // града. За с. Крумово, община Родопи такъв район няма - то продължава да
+    // пада, а заради него проверката изобщо съществува ("Пловдив" е и област).
+    const inPlovdivDistrict = Boolean(resolveDistrictFromGeo(addr, result.display_name));
+
+    if (!sameAsQuarter && !inPlovdivDistrict) return null;
   }
 
   // Квартал/район е ПРИБЛИЗИТЕЛНО съвпадение - геокодерът често отговаря на
